@@ -35,6 +35,7 @@ create table public.hotels (
   city text not null,
   country text not null,
   rating numeric(2,1) not null default 0 check (rating >= 0 and rating <= 5),
+  review_count integer not null default 0 check (review_count >= 0),
   amenities text[] not null default '{}',
   featured boolean not null default false,
   approval_status text not null default 'pending',
@@ -48,6 +49,9 @@ create table public.hotels (
   created_at timestamptz not null default now()
 );
 
+alter table public.hotels
+  add column if not exists review_count integer not null default 0;
+
 alter table public.hotels add column if not exists payout_method jsonb;
 alter table public.hotels add column if not exists commission_rate numeric(5,2) not null default 0.00;
 
@@ -55,6 +59,7 @@ create table public.bookings (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.users(id) on delete cascade,
   hotel_id uuid not null references public.hotels(id) on delete cascade,
+  room_type text,
   check_in date not null,
   check_out date not null,
   guests integer not null check (guests > 0),
@@ -90,8 +95,13 @@ create table public.payments (
   status public.payment_status not null default 'pending',
   payment_method text not null,
   provider_reference text,
+  provider_session_id text,
   created_at timestamptz not null default now()
 );
+
+create unique index if not exists payments_provider_session_id_uidx
+  on public.payments(provider_session_id)
+  where provider_session_id is not null;
 
 create table if not exists public.payouts (
   id uuid primary key default gen_random_uuid(),

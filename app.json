@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "hotel-management",
+    "name": "SL Stay",
     "slug": "hotel-management",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,25 +10,25 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "uRndefinecom.trench.hotelmanagement",
+      "bundleIdentifier": "com.trench.hotelmanagement",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#123A50",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "uRndefinecom.trench.hotelmanagement"
+      "package": "com.trench.hotelmanagement"
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/icon.png"
     },
     "plugins": [
       "expo-router",
@@ -37,17 +37,31 @@
       "expo-splash-screen",
       "expo-status-bar",
       "expo-web-browser",
-      "expo-notifications"
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow SL Stay to access your location to show nearby hotels and map-based search."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow SL Stay to access your photos so you can upload hotel and profile images.",
+          "cameraPermission": "Allow SL Stay to use your camera to capture photos for listings and profiles."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#087E8B"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
-      "supabaseUrl": "",
-      "supabaseAnonKey": "",
-      "paystackPublicKey": "",
-      "googleMapsEmbedKey": "",
-      "backendUrl": "http://172.20.10.4:3000",
       "router": {},
       "eas": {
         "projectId": "c4e34189-a38e-446d-b44c-7a1070e87e22"

@@ -42,11 +42,11 @@ const adminItems = [
 ] as const satisfies readonly NavigationItem[];
 
 const vendorItems = [
-  { label: 'Overview', href: '/(vendor)/dashboard', icon: 'grid-outline' },
-  { label: 'My properties', href: '/(vendor)/hotels', icon: 'business-outline' },
+  { label: 'Dashboard', href: '/(vendor)/dashboard', icon: 'grid-outline' },
+  { label: 'Rooms', href: '/(vendor)/hotels', icon: 'business-outline' },
   { label: 'Bookings', href: '/(vendor)/bookings', icon: 'calendar-outline' },
-  { label: 'Payouts', href: '/(vendor)/payouts', icon: 'wallet-outline' },
-  { label: 'Business profile', href: '/(vendor)/profile', icon: 'person-outline' },
+  { label: 'Earnings', href: '/(vendor)/payouts', icon: 'wallet-outline' },
+  { label: 'Settings', href: '/(vendor)/profile', icon: 'person-outline' },
 ] as const satisfies readonly NavigationItem[];
 
 export function AdminSidebarLayout() {
@@ -78,7 +78,7 @@ function RoleSidebarLayout({ brand, description, items, showSignOut = false }: R
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const signOut = useAuthStore((state) => state.signOut);
-  const wideLayout = width >= 900;
+  const wideLayout = width >= 769;
   const showSignOutLabel = width >= 520;
   const activeItem = items.find((item) => pathname.endsWith(item.href.toString().split('/').pop() ?? ''));
   const pageTitle = activeItem?.label ?? 'Dashboard';
@@ -159,6 +159,9 @@ function RoleSidebarLayout({ brand, description, items, showSignOut = false }: R
           ) : null}
           <View style={styles.content}>
             <Slot />
+          </View>
+          <View style={styles.mainFooter}>
+            <Text style={styles.mainFooterText}>Copyright © 2026 SL Stay</Text>
           </View>
         </View>
       </View>
@@ -428,6 +431,19 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  mainFooter: {
+    minHeight: 38,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    paddingHorizontal: 24,
+    borderTopWidth: 1,
+    borderTopColor: '#E8EEF0',
+    backgroundColor: '#FFFFFF',
+  },
+  mainFooterText: {
+    color: '#82939D',
+    fontSize: 10,
   },
   drawerOverlay: {
     flex: 1,

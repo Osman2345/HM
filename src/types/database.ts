@@ -117,6 +117,27 @@ export interface PayoutRow {
   updated_at: string;
 }
 
+export interface VendorPlanRow {
+  id: 'free' | 'pro';
+  name: 'FREE' | 'PRO';
+  price: number;
+  commission_percent: number;
+  max_hotels: number;
+  features: string[];
+}
+
+export interface TransactionRow {
+  id: string;
+  booking_id: string;
+  vendor_id: string;
+  hotel_id: string;
+  total_amount: number;
+  commission_amount: number;
+  hotel_payout_amount: number;
+  status: string;
+  created_at: string;
+}
+
 export interface WebhookLogRow {
   id: string;
   event_id: string | null;
@@ -149,6 +170,8 @@ export interface Database {
           preferences: Record<string, unknown>;
           disabled: boolean;
           vendor_status: VendorStatus;
+          plan_id: 'free' | 'pro';
+          pending_plan_id: 'free' | 'pro';
           business_name: string | null;
           business_description: string | null;
           business_logo: string | null;
@@ -169,6 +192,8 @@ export interface Database {
           preferences: Record<string, unknown>;
           disabled: boolean;
           vendor_status: VendorStatus;
+          plan_id: 'free' | 'pro';
+          pending_plan_id: 'free' | 'pro';
           business_name: string | null;
           business_description: string | null;
           business_logo: string | null;
@@ -185,6 +210,8 @@ export interface Database {
           preferences: Record<string, unknown>;
           disabled: boolean;
           vendor_status: VendorStatus;
+          plan_id: 'free' | 'pro';
+          pending_plan_id: 'free' | 'pro';
           business_name: string | null;
           business_description: string | null;
           business_logo: string | null;
@@ -228,6 +255,69 @@ export interface Database {
         Insert: Partial<PayoutRow>;
         Update: Partial<PayoutRow>;
       };
+      vendor_documents: {
+        Row: {
+          id: string;
+          vendor_id: string;
+          document_type: 'national_id' | 'hotel_document' | 'business_document';
+          file_url: string;
+          status: 'pending' | 'approved' | 'rejected';
+          created_at: string;
+        };
+        Insert: Partial<{
+          id: string;
+          vendor_id: string;
+          document_type: 'national_id' | 'hotel_document' | 'business_document';
+          file_url: string;
+          status: 'pending' | 'approved' | 'rejected';
+          created_at: string;
+        }>;
+        Update: Partial<{
+          document_type: 'national_id' | 'hotel_document' | 'business_document';
+          file_url: string;
+          status: 'pending' | 'approved' | 'rejected';
+        }>;
+      };
+      vendor_plans: {
+        Row: VendorPlanRow;
+        Insert: Partial<VendorPlanRow>;
+        Update: Partial<VendorPlanRow>;
+      };
+      vendor_plan_payments: {
+        Row: {
+          id: string;
+          vendor_id: string;
+          plan_id: 'free' | 'pro';
+          amount: number;
+          status: 'pending' | 'paid' | 'failed';
+          provider_reference: string;
+          provider_session_id: string | null;
+          checkout_url: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<{
+          id: string;
+          vendor_id: string;
+          plan_id: 'free' | 'pro';
+          amount: number;
+          status: 'pending' | 'paid' | 'failed';
+          provider_reference: string;
+          provider_session_id: string | null;
+          checkout_url: string | null;
+        }>;
+        Update: Partial<{
+          status: 'pending' | 'paid' | 'failed';
+          provider_reference: string;
+          provider_session_id: string | null;
+          checkout_url: string | null;
+        }>;
+      };
+      transactions: {
+        Row: TransactionRow;
+        Insert: Partial<TransactionRow>;
+        Update: Partial<TransactionRow>;
+      };
       webhook_logs: {
         Row: WebhookLogRow;
         Insert: Partial<WebhookLogRow>;
@@ -253,6 +343,20 @@ export interface Database {
           reserved_rooms: number;
           available_rooms: number;
         }[];
+      };
+      save_vendor_document: {
+        Args: {
+          p_document_type: 'national_id' | 'hotel_document' | 'business_document';
+          p_file_url: string;
+        };
+        Returns: {
+          id: string;
+          vendor_id: string;
+          document_type: 'national_id' | 'hotel_document' | 'business_document';
+          file_url: string;
+          status: 'pending' | 'approved' | 'rejected';
+          created_at: string;
+        };
       };
       create_booking: {
         Args: {

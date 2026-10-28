@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import {
+  Linking,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -12,6 +13,7 @@ import {
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
+import { createBackendVendorUpgrade } from '@/lib/backend';
 
 type VendorHotel = {
   id: string;
@@ -25,6 +27,22 @@ type VendorBooking = {
   booking_status: string;
   created_at: string;
 };
+
+type VendorTransaction = {
+  id: string;
+  booking_id: string;
+  total_amount: number;
+  commission_amount: number;
+  hotel_payout_amount: number;
+  created_at: string;
+};
+
+const formatMoney = (amount: number) =>
+  new Intl.NumberFormat('en-SL', {
+    style: 'currency',
+    currency: 'SLE',
+    maximumFractionDigits: 0,
+  }).format(Number(amount) || 0);
 
 const metrics = [
   { key: 'bookings', label: 'Total bookings', icon: 'calendar-outline', tint: '#2879B8', background: '#EAF4FC' },
@@ -43,6 +61,11 @@ export default function VendorDashboardScreen() {
   const [bookings, setBookings] = useState<VendorBooking[]>([]);
   const [bookingCount, setBookingCount] = useState(0);
   const [pendingBookingCount, setPendingBookingCount] = useState(0);
+  const [planId, setPlanId] = useState<'free' | 'pro'>('free');
+  const [pendingPlanId, setPendingPlanId] = useState<'free' | 'pro'>('free');
+  const [transactions, setTransactions] = useState<VendorTransaction[]>([]);
+  const [upgradeBusy, setUpgradeBusy] = useState(false);
+  const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,15 +82,36 @@ export default function VendorDashboardScreen() {
     setError(null);
 
     try {
-      const { data: hotelData, error: hotelError } = await supabase
-        .from('hotels')
-        .select('id, name, approval_status')
-        .eq('owner_id', userId)
-        .order('created_at', { ascending: false });
+      const [hotelResponse, profileResponse, transactionResponse] = await Promise.all([
+        supabase
+          .from('hotels')
+          .select('id, name, approval_status')
+          .eq('owner_id', userId)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('users')
+          .select('plan_id, pending_plan_id')
+          .eq('id', userId)
+          .single(),
+        supabase
+          .from('transactions')
+          .select('id, booking_id, total_amount, commission_amount, hotel_payout_amount, created_at')
+          .eq('vendor_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(20),
+      ]);
+      const { data: hotelData, error: hotelError } = hotelResponse;
+      const { data: profileData, error: profileError } = profileResponse;
+      const { data: transactionData, error: transactionError } = transactionResponse;
       if (hotelError) throw hotelError;
+      if (profileError) throw profileError;
+      if (transactionError) throw transactionError;
 
       const ownedHotels = (hotelData ?? []) as VendorHotel[];
       setHotels(ownedHotels);
+      setPlanId(profileData.plan_id === 'pro' ? 'pro' : 'free');
+      setPendingPlanId(profileData.pending_plan_id === 'pro' ? 'pro' : 'free');
+      setTransactions((transactionData ?? []) as VendorTransaction[]);
 
       if (ownedHotels.length === 0) {
         setBookings([]);
@@ -106,10 +150,23 @@ export default function VendorDashboardScreen() {
     }
   }, [userId]);
 
-  useEffect(() => {
-    const timeout = setTimeout(() => void refresh(), 0);
-    return () => clearTimeout(timeout);
-  }, [refresh]);
+  const startUpgrade = async () => {
+    setUpgradeBusy(true);
+    setUpgradeMessage(null);
+    try {
+      const payment = await createBackendVendorUpgrade();
+      await Linking.openURL(payment.authorization_url);
+      setUpgradeMessage('Complete the Monime checkout. Your plan will change to PRO after payment is verified.');
+    } catch (caughtError) {
+      setUpgradeMessage(caughtError instanceof Error ? caughtError.message : 'Unable to start the PRO upgrade.');
+    } finally {
+      setUpgradeBusy(false);
+    }
+  };
+
+  useFocusEffect(useCallback(() => {
+    void refresh();
+  }, [refresh]));
 
   const hotelNames = useMemo(
     () => new Map(hotels.map((hotel) => [hotel.id, hotel.name])),
@@ -187,6 +244,40 @@ export default function VendorDashboardScreen() {
                 <Text style={styles.metricLabel}>{metric.label}</Text>
               </View>
             ))}
+          </View>
+
+          <View style={styles.planPanel}>
+            <View style={styles.panelHeading}>
+              <View>
+                <Text style={styles.panelTitle}>Vendor plan</Text>
+                <Text style={styles.panelSubtitle}>
+                  {planId === 'pro'
+                    ? 'PRO · 5% commission · Up to 5 hotels'
+                    : pendingPlanId === 'pro'
+                      ? 'PRO selected · Pay Le 100 once to activate your plan and list properties'
+                      : 'FREE · 10% commission · 1 hotel'}
+                </Text>
+              </View>
+              <View style={styles.planBadge}><Text style={styles.planBadgeText}>{planId.toUpperCase()}</Text></View>
+            </View>
+            {planId !== 'pro' && (pendingPlanId === 'pro' || hotels.length >= 1) ? (
+              <TouchableOpacity
+                accessibilityRole="button"
+                disabled={upgradeBusy}
+                style={[styles.upgradeButton, upgradeBusy && styles.disabledButton]}
+                onPress={() => void startUpgrade()}
+              >
+                <Text style={styles.upgradeButtonText}>
+                  {upgradeBusy ? 'Opening Monime…' : pendingPlanId === 'pro' ? 'Pay now - Le 100' : 'Upgrade to PRO - Le 100'}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+            {pendingPlanId === 'pro' && planId !== 'pro' ? (
+              <Text style={styles.upgradeMessage}>
+                Complete the one-time Monime payment before creating your first property. PRO activates only after payment is verified.
+              </Text>
+            ) : null}
+            {upgradeMessage ? <Text style={styles.upgradeMessage}>{upgradeMessage}</Text> : null}
           </View>
 
           <View style={[styles.contentGrid, compact && styles.contentGridCompact]}>
@@ -281,6 +372,40 @@ export default function VendorDashboardScreen() {
                 <Ionicons name="arrow-forward" size={15} color="#087E8B" />
               </TouchableOpacity>
             </View>
+          </View>
+
+          <View style={styles.earningsPanel}>
+            <View style={styles.panelHeading}>
+              <View>
+                <Text style={styles.panelTitle}>My Earnings</Text>
+                <Text style={styles.panelSubtitle}>Paid bookings, commission, and your hotel share</Text>
+              </View>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator>
+              <View style={styles.earningsTable}>
+                <View style={styles.earningsHeader}>
+                  <Text style={[styles.earningsColumn, styles.bookingColumn]}>Booking ID</Text>
+                  <Text style={styles.earningsColumn}>Total</Text>
+                  <Text style={styles.earningsColumn}>Commission</Text>
+                  <Text style={styles.earningsColumn}>Your payout</Text>
+                </View>
+                {transactions.length === 0 ? (
+                  <Text style={styles.emptyEarnings}>No paid booking earnings recorded yet.</Text>
+                ) : transactions.map((transaction) => (
+                  <View key={transaction.id} style={styles.earningsRow}>
+                    <Text numberOfLines={1} style={[styles.earningsValue, styles.bookingColumn]}>
+                      {transaction.booking_id.slice(0, 8)}
+                    </Text>
+                    <Text style={styles.earningsValue}>{formatMoney(transaction.total_amount)}</Text>
+                    <Text style={styles.earningsValue}>{formatMoney(transaction.commission_amount)}</Text>
+                    <Text style={styles.earningsPayout}>{formatMoney(transaction.hotel_payout_amount)}</Text>
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+            <Text style={styles.payoutNote}>
+              Payouts are manual for this project. The values above are recorded earnings; Monime payments are not automatically transferred to the hotel.
+            </Text>
           </View>
         </>
       ) : null}
@@ -460,6 +585,102 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E9EFF0',
     backgroundColor: '#FFFFFF',
+  },
+  planPanel: {
+    padding: 18,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: '#E9EFF0',
+    backgroundColor: '#FFFFFF',
+  },
+  planBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: '#EAF4FC',
+  },
+  planBadgeText: {
+    color: '#2879B8',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  upgradeButton: {
+    minHeight: 43,
+    marginTop: 5,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    backgroundColor: '#2563EB',
+  },
+  upgradeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  upgradeMessage: {
+    marginTop: 9,
+    color: '#475569',
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  earningsPanel: {
+    padding: 18,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: '#E9EFF0',
+    backgroundColor: '#FFFFFF',
+  },
+  earningsTable: {
+    minWidth: 560,
+  },
+  earningsHeader: {
+    flexDirection: 'row',
+    paddingVertical: 9,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#EFF2F2',
+  },
+  earningsColumn: {
+    flex: 1,
+    color: '#718397',
+    fontSize: 8,
+    fontWeight: '800',
+  },
+  bookingColumn: {
+    flex: 0.8,
+  },
+  earningsRow: {
+    minHeight: 39,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EFF2F2',
+  },
+  earningsValue: {
+    flex: 1,
+    color: '#475569',
+    fontSize: 9,
+  },
+  earningsPayout: {
+    flex: 1,
+    color: '#087E8B',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  emptyEarnings: {
+    paddingVertical: 15,
+    color: '#718397',
+    fontSize: 11,
+  },
+  payoutNote: {
+    marginTop: 12,
+    color: '#718397',
+    fontSize: 10,
+    lineHeight: 15,
   },
   panelHeading: {
     flexDirection: 'row',

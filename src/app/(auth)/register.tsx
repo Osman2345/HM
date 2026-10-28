@@ -1,6 +1,6 @@
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import MobileAuthHeader from '@/components/auth/MobileAuthHeader';
 import { useAuthStore } from '@/store/auth.store';
 
@@ -55,7 +55,10 @@ export default function RegisterScreen() {
   return (
     <View style={styles.screen}>
       <MobileAuthHeader />
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[styles.container, Platform.OS === 'web' && styles.webContainer]}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.title}>Create your account</Text>
         <Text style={styles.label}>Full name</Text>
         <TextInput value={fullName} onChangeText={setFullName} placeholder="Full name" style={styles.input} />
@@ -83,6 +86,13 @@ export default function RegisterScreen() {
             <Text style={styles.secondaryButtonText}>Already have an account?</Text>
           </TouchableOpacity>
         </Link>
+        {Platform.OS === 'web' ? (
+          <Link href="/login?audience=vendor" asChild>
+            <TouchableOpacity style={styles.vendorLink}>
+              <Text style={styles.vendorLinkText}>Sign in as a vendor</Text>
+            </TouchableOpacity>
+          </Link>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -98,6 +108,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 24,
     backgroundColor: '#F8FAFC',
+  },
+  webContainer: {
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
+    marginVertical: 36,
+    borderWidth: 1,
+    borderColor: '#E4EAEB',
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    boxShadow: '0px 8px 26px rgba(25, 56, 73, 0.08)',
   },
   title: {
     fontSize: 28,
@@ -147,5 +168,16 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: '#0F172A',
     fontWeight: '700',
+  },
+  vendorLink: {
+    alignSelf: 'center',
+    marginTop: 16,
+    padding: 8,
+  },
+  vendorLinkText: {
+    color: '#087E8B',
+    fontSize: 13,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
 });

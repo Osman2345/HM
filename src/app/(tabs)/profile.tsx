@@ -1,11 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { useAuthStore } from '@/store/auth.store';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const desktopWeb = Platform.OS === 'web' && width >= 769;
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const profile = useAuthStore((state: {
@@ -41,7 +43,7 @@ export default function ProfileScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.hero}>
-        <View style={styles.heroTopRow}>
+        <View style={[styles.heroTopRow, desktopWeb && styles.desktopHidden]}>
           <View style={styles.brand}>
             <View style={styles.brandMark}><Ionicons name="bed" size={17} color="#FFFFFF" /></View>
             <Text style={styles.brandName}>SL <Text style={styles.brandAccent}>STAY</Text></Text>
@@ -181,6 +183,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  desktopHidden: {
+    display: 'none',
   },
   brand: {
     flexDirection: 'row',

@@ -184,7 +184,7 @@ export default function VerifyEmailScreen() {
 
         {isVendor ? (
           <Text style={styles.vendorNote}>
-            Once verified, you can upload your business licence to complete your vendor application.
+            After verifying your email, upload your National ID or passport, hotel document, and government business registration document.
           </Text>
         ) : null}
 

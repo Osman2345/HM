@@ -3,12 +3,14 @@ import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
   Image,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { invalidateCached } from '@/lib/query-cache';
@@ -41,6 +43,8 @@ type FavoriteRow = {
 
 export default function FavoritesScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const desktopWeb = Platform.OS === 'web' && width >= 769;
   const userId = useAuthStore((state) => state.session?.user.id);
   const [favorites, setFavorites] = useState<FavoriteRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -191,6 +195,7 @@ export default function FavoritesScreen() {
               </TouchableOpacity>
             </View>
 
+            <View style={[styles.favoriteGrid, desktopWeb && styles.favoriteGridDesktop]}>
             {favorites.map((favorite) => {
               const hotel: SavedHotel = { ...favorite, id: favorite.hotel_id };
               const imageUri = hotel.cover_image || hotel.images?.find(Boolean);
@@ -201,7 +206,7 @@ export default function FavoritesScreen() {
               const location = [hotel.city, hotel.country].filter(Boolean).join(', ') || hotel.location;
 
               return (
-                <View key={favorite.favorite_id} style={styles.favoriteCard}>
+                <View key={favorite.favorite_id} style={[styles.favoriteCard, desktopWeb && styles.favoriteCardDesktop]}>
                   <Link href={{ pathname: '/hotel/[id]', params: { id: hotel.id } }} asChild>
                     <TouchableOpacity style={styles.cardMain} activeOpacity={0.85}>
                       {imageUri ? (
@@ -244,6 +249,7 @@ export default function FavoritesScreen() {
                 </View>
               );
             })}
+            </View>
           </View>
         ) : null}
       </ScrollView>
@@ -259,7 +265,7 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     width: '100%',
-    maxWidth: 860,
+    maxWidth: 1280,
     alignSelf: 'center',
     padding: 22,
     paddingBottom: 36,
@@ -302,6 +308,14 @@ const styles = StyleSheet.create({
   list: {
     gap: 11,
   },
+  favoriteGrid: {
+    gap: 11,
+  },
+  favoriteGridDesktop: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
   listHeading: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -341,6 +355,10 @@ const styles = StyleSheet.create({
     borderColor: '#E8EFF0',
     borderRadius: 14,
     backgroundColor: '#FFFFFF',
+  },
+  favoriteCardDesktop: {
+    width: '31.8%',
+    alignItems: 'flex-start',
   },
   cardMain: {
     flex: 1,

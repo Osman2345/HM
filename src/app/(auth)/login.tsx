@@ -6,9 +6,14 @@ import { useAuthStore } from '@/store/auth.store';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ bookingHotelId?: string | string[]; vendorApplicationIncomplete?: string | string[] }>();
+  const params = useLocalSearchParams<{
+    bookingHotelId?: string | string[];
+    vendorApplicationIncomplete?: string | string[];
+    audience?: string | string[];
+  }>();
   const bookingHotelId = typeof params.bookingHotelId === 'string' ? params.bookingHotelId : undefined;
   const vendorApplicationIncomplete = params.vendorApplicationIncomplete === 'true';
+  const vendorAudience = params.audience === 'vendor';
   const signIn = useAuthStore((state: { signIn: (email: string, password: string) => Promise<void> }) => state.signIn);
   const [email, setEmail] = useState('customer@hotelportal.local');
   const [password, setPassword] = useState('password123');
@@ -32,9 +37,22 @@ export default function LoginScreen() {
   return (
     <View style={styles.screen}>
       <MobileAuthHeader />
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        {Platform.OS === 'web' ? <Text style={styles.title}>SL Stay</Text> : null}
-        <Text style={styles.subtitle}>Sign in to continue</Text>
+      {vendorAudience && Platform.OS !== 'web' ? (
+        <View style={styles.mobileVendorNotice}>
+          <Text style={styles.mobileVendorNoticeTitle}>Partner sign in is available on web</Text>
+          <Link href="/(tabs)" style={styles.vendorLinkText}>Return to stays</Link>
+        </View>
+      ) : (
+      <ScrollView
+        contentContainerStyle={[styles.container, Platform.OS === 'web' && styles.webContainer]}
+        keyboardShouldPersistTaps="handled"
+      >
+        {Platform.OS === 'web' ? (
+          <Text style={styles.title}>{vendorAudience ? 'Partner sign in' : 'Welcome back'}</Text>
+        ) : null}
+        <Text style={styles.subtitle}>
+          {vendorAudience ? 'Sign in to manage your property and bookings.' : 'Sign in to continue'}
+        </Text>
         {vendorApplicationIncomplete ? (
           <Text style={styles.notice}>
             Your account was created. After confirming your email and signing in, you can finish uploading your business licence.
@@ -70,12 +88,17 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </Link>
 
-        <Link href="/register-vendor" asChild>
-          <TouchableOpacity style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>Register as vendor</Text>
-          </TouchableOpacity>
-        </Link>
+        {Platform.OS === 'web' ? (
+          <Link href={vendorAudience ? '/register-vendor' : '/login?audience=vendor'} asChild>
+            <TouchableOpacity style={styles.vendorLink}>
+              <Text style={styles.vendorLinkText}>
+                {vendorAudience ? 'New partner? Create a vendor account' : 'Sign in as a vendor'}
+              </Text>
+            </TouchableOpacity>
+          </Link>
+        ) : null}
       </ScrollView>
+      )}
     </View>
   );
 }
@@ -90,6 +113,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 24,
     backgroundColor: '#F8FAFC',
+  },
+  webContainer: {
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
+    marginVertical: 36,
+    borderWidth: 1,
+    borderColor: '#E4EAEB',
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    boxShadow: '0px 8px 26px rgba(25, 56, 73, 0.08)',
   },
   title: {
     fontSize: 32,
@@ -148,6 +182,31 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: '#0F172A',
     fontWeight: '700',
+  },
+  vendorLink: {
+    alignSelf: 'center',
+    marginTop: 16,
+    padding: 8,
+  },
+  vendorLinkText: {
+    color: '#087E8B',
+    fontSize: 13,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+  },
+  mobileVendorNotice: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 14,
+    padding: 28,
+    backgroundColor: '#F8FAFC',
+  },
+  mobileVendorNoticeTitle: {
+    color: '#17354B',
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   error: {
     color: '#DC2626',

@@ -8,7 +8,22 @@ export default function MobileAuthHeader() {
   const insets = useSafeAreaInsets();
 
   if (Platform.OS === 'web') {
-    return null;
+    return (
+      <View style={styles.webHeader}>
+        <View style={styles.webAccent} />
+        <View style={styles.webHeaderContent}>
+          <View style={styles.webBrandMark}>
+            <Ionicons name="bed" size={20} color="#FFFFFF" />
+          </View>
+          <View>
+            <Text style={styles.webBrand} accessibilityLabel="SL Stay">
+              SL <Text style={styles.webBrandAccent}>STAY</Text>
+            </Text>
+            <Text style={styles.webTagline}>FIND YOUR PLACE</Text>
+          </View>
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -38,6 +53,55 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'center',
     backgroundColor: '#123A50',
+  },
+  webHeader: {
+    minHeight: 116,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    backgroundColor: '#123A50',
+  },
+  webAccent: {
+    position: 'absolute',
+    top: -74,
+    right: '12%',
+    width: 230,
+    height: 230,
+    borderRadius: 115,
+    backgroundColor: '#1B5363',
+    opacity: 0.6,
+  },
+  webHeaderContent: {
+    width: '100%',
+    maxWidth: 1050,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  webBrandMark: {
+    width: 42,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 13,
+    backgroundColor: '#087E8B',
+  },
+  webBrand: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 1.1,
+  },
+  webBrandAccent: {
+    color: '#55D6A5',
+  },
+  webTagline: {
+    marginTop: 3,
+    color: '#C2D4D9',
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1.3,
   },
   backButton: {
     position: 'absolute',

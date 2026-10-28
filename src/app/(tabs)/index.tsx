@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { loadCached } from '@/lib/query-cache';
 import { useAuthStore } from '@/store/auth.store';
@@ -20,6 +20,8 @@ const popularCities = ['Freetown', 'Bo', 'Makeni', 'Kenema'];
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const desktopWeb = Platform.OS === 'web' && width >= 769;
   const session = useAuthStore((state: { session: { user: { id: string } } | null }) => state.session);
   const [hotels, setHotels] = useState<HotelRow[]>([]);
   const [destination, setDestination] = useState('');
@@ -148,7 +150,7 @@ export default function HomeScreen() {
 
     return (
       <Link prefetch key={hotel.id} href={{ pathname: '/hotel/[id]', params: { id: hotel.id } }} asChild>
-        <TouchableOpacity style={styles.hotelCard} activeOpacity={0.92}>
+        <TouchableOpacity style={StyleSheet.flatten([styles.hotelCard, desktopWeb && styles.hotelCardWeb])} activeOpacity={0.92}>
           <View style={styles.hotelPhotoWrap}>
             {hotel.cover_image ? (
               <Image source={{ uri: hotel.cover_image }} style={styles.hotelImage} resizeMode="cover" />
@@ -197,7 +199,12 @@ export default function HomeScreen() {
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={[styles.container, desktopWeb && styles.desktopContainer]}
+      showsVerticalScrollIndicator={false}
+    >
+      {!desktopWeb ? (
       <View style={styles.topBar}>
         <View style={styles.brandLockup}>
           <View style={styles.brandMark}>
@@ -241,17 +248,18 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
       </View>
+      ) : null}
 
-      <View style={styles.hero}>
+      <View style={[styles.hero, desktopWeb && styles.heroDesktop]}>
         <View style={styles.heroOrb} />
         <View style={styles.heroEyebrow}>
           <View style={styles.heroEyebrowLine} />
           <Text style={styles.heroEyebrowText}>THE BEST OF SIERRA LEONE</Text>
         </View>
-        <Text style={styles.heroTitle}>A stay that feels{'\n'}like <Text style={styles.heroTitleAccent}>your own.</Text></Text>
+        <Text style={[styles.heroTitle, desktopWeb && styles.heroTitleDesktop]}>A stay that feels{'\n'}like <Text style={styles.heroTitleAccent}>your own.</Text></Text>
         <Text style={styles.heroSubtitle}>Find a lovely place to stay, wherever the road takes you.</Text>
 
-        <View style={styles.searchPanel}>
+        <View style={[styles.searchPanel, desktopWeb && styles.searchPanelDesktop]}>
           <View style={styles.searchInputRow}>
             <Ionicons name="location-outline" size={21} color="#087E8B" />
             <TextInput
@@ -335,7 +343,11 @@ export default function HomeScreen() {
             <Text style={styles.state}>New stays are on their way.</Text>
           </View>
         ) : null}
-        {!loading && hotels.length > 0 ? hotels.map(renderHotelCard) : null}
+        {!loading && hotels.length > 0 ? (
+          <View style={[styles.hotelGrid, desktopWeb && styles.hotelGridDesktop]}>
+            {hotels.map(renderHotelCard)}
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.footerNote}>
@@ -353,6 +365,11 @@ const styles = StyleSheet.create({
   },
   container: {
     paddingBottom: 24,
+  },
+  desktopContainer: {
+    width: '100%',
+    maxWidth: 1280,
+    alignSelf: 'center',
   },
   topBar: {
     minHeight: 74,
@@ -443,6 +460,11 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     backgroundColor: '#123A50',
   },
+  heroDesktop: {
+    paddingHorizontal: 56,
+    paddingTop: 44,
+    paddingBottom: 36,
+  },
   heroOrb: {
     position: 'absolute',
     right: -68,
@@ -477,6 +499,10 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: -0.7,
   },
+  heroTitleDesktop: {
+    fontSize: 44,
+    lineHeight: 50,
+  },
   heroTitleAccent: {
     color: '#F2B544',
   },
@@ -493,6 +519,9 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     backgroundColor: '#FFFFFF',
     gap: 7,
+  },
+  searchPanelDesktop: {
+    maxWidth: 620,
   },
   searchInputRow: {
     minHeight: 48,
@@ -569,6 +598,15 @@ const styles = StyleSheet.create({
     paddingTop: 27,
     gap: 12,
   },
+  hotelGrid: {
+    gap: 12,
+  },
+  hotelGridDesktop: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    paddingHorizontal: 20,
+  },
   seeAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -588,6 +626,10 @@ const styles = StyleSheet.create({
     borderColor: '#E6EBEC',
     boxShadow: '0px 3px 10px rgba(25, 56, 73, 0.06)',
     elevation: 2,
+  },
+  hotelCardWeb: {
+    width: '31.8%',
+    marginHorizontal: 0,
   },
   hotelPhotoWrap: {
     height: 192,

@@ -7,6 +7,8 @@ in numeric order. Run `supabase/seed.sql` after all migrations.
 
 These files are idempotent and safe to rerun as part of a fresh environment rebuild.
 Vendor accounts start as pending until an administrator approves or rejects them.
+Migrations `0022` and `0023` enable National ID/passport, hotel, and business
+document uploads, the FREE/PRO plan records, and earnings tracking.
 Once approved, vendors can publish properties immediately; property listings do
 not wait for a separate approval.
 

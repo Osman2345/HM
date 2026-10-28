@@ -1,6 +1,9 @@
 import { supabase } from '@/lib/supabase';
 
-const maxDocumentSize = 10 * 1024 * 1024;
+export const vendorDocumentTypes = ['national_id', 'hotel_document', 'business_document'] as const;
+export type VendorDocumentType = (typeof vendorDocumentTypes)[number];
+
+const maxDocumentSize = 5 * 1024 * 1024;
 export interface VendorDocumentAsset {
   uri: string;
   name: string;
@@ -8,14 +11,16 @@ export interface VendorDocumentAsset {
   size?: number;
 }
 
-const allowedMimeTypes = new Set([
-  'application/pdf',
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/heic',
-  'image/heif',
-]);
+export interface VendorDocumentRecord {
+  id: string;
+  vendor_id: string;
+  document_type: VendorDocumentType;
+  file_url: string;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+}
+
+const allowedMimeTypes = new Set(['application/pdf', 'image/jpeg', 'image/png']);
 
 const mimeTypeFor = (asset: VendorDocumentAsset) => {
   if (asset.mimeType) {
@@ -25,15 +30,12 @@ const mimeTypeFor = (asset: VendorDocumentAsset) => {
   if (extension === 'pdf') return 'application/pdf';
   if (extension === 'jpg' || extension === 'jpeg') return 'image/jpeg';
   if (extension === 'png') return 'image/png';
-  if (extension === 'webp') return 'image/webp';
-  if (extension === 'heic') return 'image/heic';
-  if (extension === 'heif') return 'image/heif';
   return '';
 };
 
 const extensionFor = (asset: VendorDocumentAsset, mimeType: string) => {
   const fromName = asset.name.match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase();
-  if (fromName && ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'].includes(fromName)) {
+  if (fromName && ['pdf', 'jpg', 'jpeg', 'png'].includes(fromName)) {
     return fromName;
   }
   if (mimeType === 'application/pdf') return 'pdf';
@@ -41,41 +43,84 @@ const extensionFor = (asset: VendorDocumentAsset, mimeType: string) => {
   return mimeType.split('/')[1];
 };
 
-export const uploadVendorDocument = async (userId: string, asset: VendorDocumentAsset) => {
+const labelForType = (documentType: VendorDocumentType) => {
+  const labels: Record<VendorDocumentType, string> = {
+    national_id: 'National ID / Passport',
+    hotel_document: 'Hotel document',
+    business_document: 'Business document',
+  };
+  return labels[documentType];
+};
+
+export const getVendorDocumentTypeLabel = (documentType: VendorDocumentType) => labelForType(documentType);
+
+export const uploadVendorDocument = async (
+  userId: string,
+  documentType: VendorDocumentType,
+  asset: VendorDocumentAsset,
+): Promise<VendorDocumentRecord> => {
   const mimeType = mimeTypeFor(asset);
   if (!allowedMimeTypes.has(mimeType)) {
-    throw new Error('Choose a PDF or a JPEG, PNG, WebP, or HEIC photo of your business licence.');
+    throw new Error(`Choose a PDF or a JPG/PNG image for ${labelForType(documentType)}.`);
   }
   if (asset.size !== undefined && asset.size > maxDocumentSize) {
-    throw new Error('The business licence file must be 10 MB or smaller.');
+    throw new Error(`${labelForType(documentType)} must be 5 MB or smaller.`);
   }
 
   const fileResponse = await fetch(asset.uri);
   if (!fileResponse.ok) {
-    throw new Error('Could not read the selected business licence file.');
+    throw new Error(`Could not read the selected ${labelForType(documentType)}.`);
   }
-  const image = await fileResponse.blob();
-  if (image.size > maxDocumentSize) {
-    throw new Error('The business licence file must be 10 MB or smaller.');
+  const fileBlob = await fileResponse.blob();
+  if (fileBlob.size > maxDocumentSize) {
+    throw new Error(`${labelForType(documentType)} must be 5 MB or smaller.`);
   }
 
-  const filePath = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${extensionFor(asset, mimeType)}`;
+  const extension = extensionFor(asset, mimeType);
+  const filePath = `${userId}/${documentType}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${extension}`;
+
   const { error: uploadError } = await supabase.storage
     .from('vendor-documents')
-    .upload(filePath, image, { contentType: mimeType, upsert: false });
+    .upload(filePath, fileBlob, { contentType: mimeType, upsert: false });
 
   if (uploadError) {
     throw uploadError;
   }
 
-  const { error: profileError } = await supabase
-    .from('users')
-    .update({ business_document_url: filePath })
-    .eq('id', userId);
+  const { data, error } = await supabase.rpc('save_vendor_document', {
+    p_document_type: documentType,
+    p_file_url: filePath,
+  });
 
-  if (profileError) {
-    throw profileError;
+  if (error) {
+    const { error: cleanupError } = await supabase.storage.from('vendor-documents').remove([filePath]);
+    if (cleanupError) {
+      throw new Error(`${error.message} The uploaded file could not be cleaned up: ${cleanupError.message}`);
+    }
+    throw error;
   }
 
-  return filePath;
+  return data as VendorDocumentRecord;
+};
+
+export const listVendorDocuments = async (userId: string): Promise<VendorDocumentRecord[]> => {
+  const { data, error } = await supabase
+    .from('vendor_documents')
+    .select('*')
+    .eq('vendor_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []) as VendorDocumentRecord[];
+};
+
+export const getSignedVendorDocumentUrl = async (fileUrl: string) => {
+  const { data, error } = await supabase.storage.from('vendor-documents').createSignedUrl(fileUrl, 300);
+  if (error) {
+    throw new Error(error.message);
+  }
+  return data.signedUrl;
 };

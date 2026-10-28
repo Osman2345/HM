@@ -41,9 +41,11 @@ export default function VendorHotelsIndexScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [proPaymentRequired, setProPaymentRequired] = useState(false);
   const canAddHotel = profile?.role === 'vendor'
     && profile.vendor_status === 'approved'
-    && !profile.disabled;
+    && !profile.disabled
+    && !proPaymentRequired;
 
   const loadHotels = useCallback(async (pull = false) => {
     if (!userId) {
@@ -57,15 +59,20 @@ export default function VendorHotelsIndexScreen() {
     else if (!getCached<VendorHotel[]>(cacheKey)) setLoading(true);
     setError(null);
     try {
-      const data = await loadCached(cacheKey, async () => {
-        const { data: rows, error: queryError } = await supabase
-          .from('hotels')
-          .select('id, name, description, city, country, approval_status, rejection_reason, cover_image, rooms, created_at')
-          .eq('owner_id', userId)
-          .order('created_at', { ascending: false });
-        if (queryError) throw queryError;
-        return (rows ?? []) as VendorHotel[];
-      }, 20000, pull);
+      const [data, account] = await Promise.all([
+        loadCached(cacheKey, async () => {
+          const { data: rows, error: queryError } = await supabase
+            .from('hotels')
+            .select('id, name, description, city, country, approval_status, rejection_reason, cover_image, rooms, created_at')
+            .eq('owner_id', userId)
+            .order('created_at', { ascending: false });
+          if (queryError) throw queryError;
+          return (rows ?? []) as VendorHotel[];
+        }, 20000, pull),
+        supabase.from('users').select('plan_id, pending_plan_id').eq('id', userId).single(),
+      ]);
+      if (account.error) throw account.error;
+      setProPaymentRequired(account.data.pending_plan_id === 'pro' && account.data.plan_id !== 'pro');
       setHotels(data);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Unable to load your properties.');
@@ -119,9 +126,13 @@ export default function VendorHotelsIndexScreen() {
         <View style={styles.noticeCard}>
           <View style={styles.noticeIcon}><Ionicons name="time-outline" size={19} color="#B7791F" /></View>
           <View style={styles.noticeCopy}>
-            <Text style={styles.noticeTitle}>Vendor approval required</Text>
+            <Text style={styles.noticeTitle}>
+              {proPaymentRequired ? 'PRO payment required' : 'Vendor approval required'}
+            </Text>
             <Text style={styles.noticeText}>
-              {profile?.vendor_status === 'rejected'
+              {proPaymentRequired
+                ? 'You selected PRO during signup. Pay the one-time Le 100 fee from your dashboard before creating a property.'
+                : profile?.vendor_status === 'rejected'
                 ? 'Your vendor application needs attention before you can publish a property.'
                 : 'You can create and publish hotel listings as soon as your vendor account is approved.'}
             </Text>

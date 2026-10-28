@@ -7,6 +7,8 @@ export interface AdminUser {
   email: string;
   role: UserRole;
   vendor_status: string;
+  plan_id: 'free' | 'pro';
+  pending_plan_id: 'free' | 'pro';
   disabled: boolean;
   business_name: string | null;
   business_description: string | null;
@@ -14,6 +16,13 @@ export interface AdminUser {
   vendor_terms_accepted_at: string | null;
   vendor_terms_version: string | null;
   created_at: string;
+  vendor_documents?: {
+    id: string;
+    document_type: 'national_id' | 'hotel_document' | 'business_document';
+    file_url: string;
+    status: 'pending' | 'approved' | 'rejected';
+    created_at: string;
+  }[];
 }
 
 export interface AdminHotel {
@@ -195,7 +204,7 @@ export const reviewAdminHotel = async (
 export const loadAdminVendors = async (): Promise<AdminUser[]> => {
   const { data, error } = await supabase
     .from('users')
-    .select('id, fullname, email, role, vendor_status, disabled, business_name, business_description, business_document_url, vendor_terms_accepted_at, vendor_terms_version, created_at')
+    .select('id, fullname, email, role, vendor_status, plan_id, pending_plan_id, disabled, business_name, business_description, business_document_url, vendor_terms_accepted_at, vendor_terms_version, created_at, vendor_documents(id, document_type, file_url, status, created_at)')
     .eq('role', 'vendor')
     .order('created_at', { ascending: false });
   return throwIfError(data ?? [], error) as AdminUser[];
@@ -205,7 +214,7 @@ export const loadAdminUsers = async (search: string): Promise<AdminUser[]> => {
   const selectUsers = () =>
     supabase
       .from('users')
-      .select('id, fullname, email, role, vendor_status, disabled, business_name, business_description, business_document_url, vendor_terms_accepted_at, vendor_terms_version, created_at')
+      .select('id, fullname, email, role, vendor_status, plan_id, pending_plan_id, disabled, business_name, business_description, business_document_url, vendor_terms_accepted_at, vendor_terms_version, created_at, vendor_documents(id, document_type, file_url, status, created_at)')
       .order('created_at', { ascending: false })
       .limit(100);
   const term = search.trim();

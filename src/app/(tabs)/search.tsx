@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
@@ -40,6 +40,8 @@ export default function SearchScreen() {
 
 function SearchResults({ initialQuery }: { initialQuery: string }) {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const desktopWeb = Platform.OS === 'web' && width >= 769;
   const router = useRouter();
   const session = useAuthStore((state: { session: { user: { id: string } } | null }) => state.session);
   const userId = session?.user?.id;
@@ -259,6 +261,7 @@ function SearchResults({ initialQuery }: { initialQuery: string }) {
           </View>
         ) : null}
 
+        <View style={desktopWeb ? styles.webCards : undefined}>
         {sortedResults.map((hotel) => {
           const price = getLowestPrice(hotel);
           const room = getCheapestRoom(hotel);
@@ -270,19 +273,19 @@ function SearchResults({ initialQuery }: { initialQuery: string }) {
           const freeCancellation = /free cancellation|free cancelation|fully refundable/i.test(hotel.policies ?? '');
 
           return (
-            <View key={hotel.id} style={styles.card}>
+            <View key={hotel.id} style={[styles.card, desktopWeb && styles.webCard]}>
               <Link prefetch href={{ pathname: '/hotel/[id]', params: { id: hotel.id } }} asChild>
-                <TouchableOpacity style={styles.cardMain} activeOpacity={0.92}>
-                  <View style={styles.imageWrap}>
+                <TouchableOpacity style={StyleSheet.flatten([styles.cardMain, desktopWeb && styles.webCardMain])} activeOpacity={0.92}>
+                  <View style={[styles.imageWrap, desktopWeb && styles.webImageWrap]}>
                     {imageUri ? (
-                      <Image source={{ uri: imageUri }} style={styles.hotelImage} resizeMode="cover" />
+                      <Image source={{ uri: imageUri }} style={[styles.hotelImage, desktopWeb && styles.webHotelImage]} resizeMode="cover" />
                     ) : (
-                      <View style={styles.imageFallback}>
+                      <View style={[styles.imageFallback, desktopWeb && styles.webHotelImage]}>
                         <Ionicons name="business-outline" size={35} color="#9BA8B6" />
                       </View>
                     )}
                   </View>
-                  <View style={styles.hotelDetails}>
+                  <View style={[styles.hotelDetails, desktopWeb && styles.webHotelDetails]}>
                     <Text style={styles.hotelName} numberOfLines={2}>{hotel.name}</Text>
                     <View style={styles.badgesRow}>
                       {hotel.featured ? (
@@ -360,6 +363,7 @@ function SearchResults({ initialQuery }: { initialQuery: string }) {
             </View>
           );
         })}
+        </View>
       </ScrollView>
     </View>
   );
@@ -466,6 +470,9 @@ const styles = StyleSheet.create({
   },
   resultsContent: {
     paddingTop: 17,
+    width: '100%',
+    maxWidth: 1280,
+    alignSelf: 'center',
   },
   summary: {
     color: '#29323C',
@@ -520,9 +527,27 @@ const styles = StyleSheet.create({
     borderBottomColor: '#DDE1E5',
     backgroundColor: '#FFFFFF',
   },
+  webCards: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 14,
+    paddingHorizontal: 18,
+  },
+  webCard: {
+    width: '31.8%',
+    minHeight: 395,
+    flexDirection: 'column',
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: 14,
+    borderColor: '#E6EBEC',
+  },
   cardMain: {
     flex: 1,
     flexDirection: 'row',
+  },
+  webCardMain: {
+    flexDirection: 'column',
   },
   imageWrap: {
     width: '38%',
@@ -531,10 +556,18 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#EDF1F5',
   },
+  webImageWrap: {
+    width: '100%',
+    height: 170,
+    minHeight: 170,
+  },
   hotelImage: {
     width: '100%',
     height: '100%',
     minHeight: 218,
+  },
+  webHotelImage: {
+    minHeight: 170,
   },
   imageFallback: {
     flex: 1,
@@ -548,6 +581,11 @@ const styles = StyleSheet.create({
     paddingLeft: 12,
     paddingRight: 14,
     alignItems: 'flex-start',
+  },
+  webHotelDetails: {
+    flex: 1,
+    paddingHorizontal: 0,
+    paddingTop: 12,
   },
   hotelName: {
     color: '#17191D',

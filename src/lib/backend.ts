@@ -57,6 +57,7 @@ export const createBackendAccount = async (account: {
   role: 'user' | 'vendor';
   businessName?: string;
   termsVersion?: string;
+  planId?: 'free' | 'pro';
 }): Promise<{ userId: string; otpLength: number; expiresInSeconds: number }> => {
   const payload = await postBackendJson('/api/auth/signup', account);
   if (
@@ -107,12 +108,52 @@ const getAuthorizationHeaders = async () => {
     throw error;
   }
   if (!data.session) {
-    throw new Error('Sign in is required to access booking payments');
+    throw new Error('Sign in is required to access this service.');
   }
   return {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${data.session.access_token}`,
   };
+};
+
+export const sendVendorDecisionEmail = async (
+  vendorId: string,
+  status: 'approved' | 'rejected',
+): Promise<void> => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), accountRequestTimeoutMs);
+  let response: Response;
+
+  try {
+    response = await fetch(buildBackendUrl('/api/admin/vendors/decision-email'), {
+      method: 'POST',
+      headers: await getAuthorizationHeaders(),
+      body: JSON.stringify({ vendorId, status }),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error('The account server did not respond within 30 seconds. The vendor decision was saved; retry sending the email.');
+    }
+    if (error instanceof TypeError) {
+      throw new Error('Cannot reach the account server. The vendor decision was saved; check the server connection and retry sending the email.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  const responseText = await response.text();
+  let payload: { sent?: boolean; error?: string } = {};
+  try {
+    payload = responseText ? JSON.parse(responseText) as { sent?: boolean; error?: string } : {};
+  } catch {
+    throw new Error(`The account server returned an unreadable response (HTTP ${response.status}).`);
+  }
+
+  if (!response.ok || payload.sent !== true) {
+    throw new Error(payload.error || `The account server could not send the decision email (HTTP ${response.status}).`);
+  }
 };
 
 type PaymentResponse = {
@@ -186,6 +227,17 @@ export const createBackendPayment = async ({ bookingId }: { bookingId: string })
   };
 };
 
+export const createBackendVendorUpgrade = async () => {
+  const payload = await postPaymentRequest('/api/vendor/upgrade', {});
+  if (!payload.success || typeof payload.reference !== 'string' || typeof payload.authorization_url !== 'string') {
+    throw new Error(payload.error || 'Unable to initialize the PRO upgrade');
+  }
+  return {
+    reference: payload.reference,
+    authorization_url: payload.authorization_url,
+  };
+};
+
 export const verifyBackendPayment = async (reference: string) => {
   const payload = await postPaymentRequest('/api/payments/verify', { reference });
 
@@ -193,5 +245,13 @@ export const verifyBackendPayment = async (reference: string) => {
     throw new Error(payload?.error || 'Unable to verify payment');
   }
 
+  return payload;
+};
+
+export const verifyBackendVendorUpgrade = async (reference: string) => {
+  const payload = await postPaymentRequest('/api/vendor/upgrade/verify', { reference });
+  if (!payload.success) {
+    throw new Error(payload.error || 'Unable to verify the PRO upgrade');
+  }
   return payload;
 };

@@ -1,17 +1,18 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { verifyBackendPayment } from '@/lib/backend';
+import { verifyBackendPayment, verifyBackendVendorUpgrade } from '@/lib/backend';
 
 export default function PaymentCallbackScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ reference?: string; bookingId?: string }>();
+  const params = useLocalSearchParams<{ reference?: string; bookingId?: string; purchaseType?: string }>();
   const [status, setStatus] = useState<string>('processing');
   const [message, setMessage] = useState('Processing your payment update...');
 
   useEffect(() => {
     const reference = typeof params.reference === 'string' ? params.reference : '';
     const bookingId = typeof params.bookingId === 'string' ? params.bookingId : '';
+    const isVendorUpgrade = params.purchaseType === 'vendor_upgrade';
     let isMounted = true;
 
     const verify = async () => {
@@ -22,7 +23,9 @@ export default function PaymentCallbackScreen() {
       }
 
       try {
-        const response = await verifyBackendPayment(reference);
+        const response = isVendorUpgrade
+          ? await verifyBackendVendorUpgrade(reference)
+          : await verifyBackendPayment(reference);
         if (!isMounted) {
           return;
         }
@@ -32,13 +35,21 @@ export default function PaymentCallbackScreen() {
         setStatus(nextStatus);
         setMessage(
           ['success', 'paid'].includes(nextStatus)
-            ? 'Payment verified successfully.'
+            ? isVendorUpgrade
+              ? 'Your PRO vendor upgrade was verified successfully.'
+              : 'Payment verified successfully.'
             : nextStatus === 'failed'
-              ? 'Payment was not completed. You can retry from your booking.'
+              ? isVendorUpgrade
+                ? 'The PRO upgrade payment was not completed.'
+                : 'Payment was not completed. You can retry from your booking.'
               : 'Payment is being reviewed.',
         );
 
-        const target = bookingId ? { pathname: '/booking/[id]' as const, params: { id: bookingId, paymentReference: reference } } : '/';
+        const target = isVendorUpgrade
+          ? '/(vendor)/dashboard'
+          : bookingId
+            ? { pathname: '/booking/[id]' as const, params: { id: bookingId, paymentReference: reference } }
+            : '/';
         const timeout = setTimeout(() => {
           if (isMounted) {
             router.replace(target);
@@ -62,7 +73,7 @@ export default function PaymentCallbackScreen() {
     return () => {
       isMounted = false;
     };
-  }, [params.bookingId, params.reference, router]);
+  }, [params.bookingId, params.purchaseType, params.reference, router]);
 
   return (
     <View style={styles.container}>

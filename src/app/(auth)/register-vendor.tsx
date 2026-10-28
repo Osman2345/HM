@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import MobileAuthHeader from '@/components/auth/MobileAuthHeader';
 import { useAuthStore } from '@/store/auth.store';
 
@@ -37,6 +37,7 @@ export default function RegisterVendorScreen() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [planId, setPlanId] = useState<'free' | 'pro'>('free');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,6 +60,7 @@ export default function RegisterVendorScreen() {
       const verification = await signUp(normalizedEmail, password, fullName.trim(), 'vendor', {
         businessName: businessName.trim(),
         termsVersion: vendorTermsVersion,
+        planId,
       });
 
       router.replace({
@@ -81,11 +83,54 @@ export default function RegisterVendorScreen() {
   return (
     <View style={styles.screen}>
       <MobileAuthHeader />
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      {Platform.OS !== 'web' ? (
+        <View style={styles.mobileVendorNotice}>
+          <Text style={styles.mobileVendorNoticeTitle}>Vendor registration is available on web</Text>
+          <Text style={styles.mobileVendorNoticeText}>Open SL Stay in a web browser to register your property.</Text>
+          <Link href="/(tabs)" style={styles.mobileVendorNoticeLink}>Browse stays</Link>
+        </View>
+      ) : (
+      <ScrollView
+        contentContainerStyle={[styles.container, styles.webContainer]}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.brandMark}><Ionicons name="bed" size={22} color="#FFFFFF" /></View>
         <Text style={styles.eyebrow}>SL STAY PARTNERS</Text>
         <Text style={styles.title}>Create your vendor account</Text>
         <Text style={styles.subtitle}>Tell us about your business and verify your property. Your details stay private while we review your application.</Text>
+
+        <Text style={styles.sectionTitle}>Choose your vendor plan</Text>
+        <View style={styles.planRow}>
+          {[
+            { id: 'free' as const, title: 'FREE', price: 'Le 0', description: '1 hotel · 10% commission' },
+            { id: 'pro' as const, title: 'PRO', price: 'Le 100 one-time', description: 'Up to 5 hotels · 5% commission · Verified badge' },
+          ].map((plan) => {
+            const selected = planId === plan.id;
+            return (
+              <TouchableOpacity
+                key={plan.id}
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+                style={[styles.planCard, selected && styles.planCardSelected]}
+                onPress={() => setPlanId(plan.id)}
+              >
+                {plan.id === 'pro' ? <Text style={styles.recommended}>RECOMMENDED</Text> : null}
+                <Text style={styles.planTitle}>{plan.title}</Text>
+                <Text style={styles.planPrice}>{plan.price}</Text>
+                <Text style={styles.planDescription}>{plan.description}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        <Text style={styles.helper}>
+          PRO is a one-time payment. You can complete the upgrade after your vendor account is approved.
+        </Text>
+        <View style={styles.explanationBox}>
+          <Text style={styles.explanationTitle}>How it works</Text>
+          <Text style={styles.explanationText}>
+            Customers pay through Monime. HM keeps the plan commission (10% FREE or 5% PRO), and the remaining hotel earnings appear on your dashboard. Payouts are manual for this project.
+          </Text>
+        </View>
 
         <Text style={styles.label}>Business name</Text>
         <TextInput
@@ -125,8 +170,8 @@ export default function RegisterVendorScreen() {
           style={styles.input}
         />
 
-        <Text style={styles.sectionTitle}>Business licence</Text>
-        <Text style={styles.helper}>After verifying your email, you will be prompted to upload a clear photo or PDF of your business licence or registration document.</Text>
+        <Text style={styles.sectionTitle}>Documents required for verification</Text>
+        <Text style={styles.helper}>After verifying your email, upload your National ID or passport, hotel/property document, and government business registration document.</Text>
 
         <Text style={styles.sectionTitle}>SL Stay vendor rules</Text>
         <Text style={styles.helper}>Please review these requirements before you create your account.</Text>
@@ -168,12 +213,13 @@ export default function RegisterVendorScreen() {
           <Text style={styles.primaryButtonText}>{busy ? 'Creating account…' : 'Agree & continue'}</Text>
         </TouchableOpacity>
 
-        <Link href="/login" asChild>
+        <Link href="/login?audience=vendor" asChild>
           <TouchableOpacity style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>Back to sign in</Text>
+            <Text style={styles.secondaryButtonText}>Back to partner sign in</Text>
           </TouchableOpacity>
         </Link>
       </ScrollView>
+      )}
     </View>
   );
 }
@@ -188,6 +234,44 @@ const styles = StyleSheet.create({
     padding: 22,
     paddingBottom: 36,
     backgroundColor: '#F5F7F8',
+  },
+  webContainer: {
+    width: '100%',
+    maxWidth: 880,
+    alignSelf: 'center',
+    marginVertical: 28,
+    borderWidth: 1,
+    borderColor: '#E4EAEB',
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    boxShadow: '0px 8px 26px rgba(25, 56, 73, 0.08)',
+  },
+  mobileVendorNotice: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    padding: 28,
+    backgroundColor: '#F5F7F8',
+  },
+  mobileVendorNoticeTitle: {
+    color: '#17354B',
+    fontSize: 19,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  mobileVendorNoticeText: {
+    maxWidth: 320,
+    color: '#667783',
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
+  },
+  mobileVendorNoticeLink: {
+    marginTop: 4,
+    color: '#087E8B',
+    fontSize: 14,
+    fontWeight: '700',
   },
   brandMark: {
     width: 42,
@@ -240,6 +324,65 @@ const styles = StyleSheet.create({
     color: '#17354B',
     fontSize: 17,
     fontWeight: '800',
+  },
+  planRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 9,
+  },
+  planCard: {
+    flex: 1,
+    minHeight: 126,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#D6E0E2',
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+  },
+  planCardSelected: {
+    borderWidth: 2,
+    borderColor: '#2563EB',
+  },
+  recommended: {
+    color: '#2563EB',
+    fontSize: 8,
+    fontWeight: '900',
+    letterSpacing: 0.7,
+  },
+  planTitle: {
+    marginTop: 5,
+    color: '#17354B',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  planPrice: {
+    marginTop: 4,
+    color: '#087E8B',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  planDescription: {
+    marginTop: 6,
+    color: '#718397',
+    fontSize: 10,
+    lineHeight: 14,
+  },
+  explanationBox: {
+    marginTop: 4,
+    padding: 12,
+    borderRadius: 11,
+    backgroundColor: '#EAF4FC',
+  },
+  explanationTitle: {
+    color: '#17354B',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  explanationText: {
+    marginTop: 4,
+    color: '#526974',
+    fontSize: 11,
+    lineHeight: 16,
   },
   helper: {
     marginTop: 5,

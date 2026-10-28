@@ -314,6 +314,21 @@ export default function VendorHotelEditorScreen() {
       setError('Your vendor account must be approved before you can publish a property.');
       return;
     }
+    if (!editing) {
+      const { data: account, error: accountError } = await supabase
+        .from('users')
+        .select('plan_id, pending_plan_id')
+        .eq('id', userId)
+        .single();
+      if (accountError) {
+        setError(accountError.message);
+        return;
+      }
+      if (account.pending_plan_id === 'pro' && account.plan_id !== 'pro') {
+        setError('Pay the Le 100 PRO fee from your vendor dashboard before creating a property.');
+        return;
+      }
+    }
 
     const cleanName = name.trim();
     const cleanDescription = description.trim();

@@ -19,6 +19,8 @@ type BookingRow = {
   hotel_id: string;
   booking_status: string;
   payment_status: string;
+  payment_method: 'monime' | 'pay_at_hotel';
+  voucher_code: string | null;
   total_price: number;
   check_in: string;
   check_out: string;
@@ -90,7 +92,7 @@ export default function BookingsScreen() {
       const data = await loadCached(cacheKey, async () => {
         const { data: rows, error: fetchError } = await supabase
           .from('bookings')
-          .select('id, hotel_id, booking_status, payment_status, total_price, check_in, check_out, created_at, hotels(name, city)')
+          .select('id, hotel_id, booking_status, payment_status, payment_method, voucher_code, total_price, check_in, check_out, created_at, hotels(name, city)')
           .eq('user_id', userId)
           .order('created_at', { ascending: false });
         if (fetchError) throw fetchError;
@@ -156,7 +158,7 @@ export default function BookingsScreen() {
     if (activeTab === 'cancelled') return booking.booking_status === 'cancelled';
     if (booking.booking_status === 'cancelled') return false;
     if (activeTab === 'past') {
-      return booking.booking_status === 'completed' || isPastDate(booking.check_out);
+      return ['completed', 'checked_out', 'no_show'].includes(booking.booking_status) || isPastDate(booking.check_out);
     }
     return (booking.booking_status === 'pending' || booking.booking_status === 'confirmed')
       && !isPastDate(booking.check_out);
@@ -187,7 +189,7 @@ export default function BookingsScreen() {
               if (tab.key === 'cancelled') return booking.booking_status === 'cancelled';
               if (booking.booking_status === 'cancelled') return false;
               if (tab.key === 'past') {
-                return booking.booking_status === 'completed' || isPastDate(booking.check_out);
+                return ['completed', 'checked_out', 'no_show'].includes(booking.booking_status) || isPastDate(booking.check_out);
               }
               return (booking.booking_status === 'pending' || booking.booking_status === 'confirmed')
                 && !isPastDate(booking.check_out);
@@ -339,11 +341,12 @@ export default function BookingsScreen() {
                           <View style={[styles.paymentBadge, paid ? styles.paidBadge : styles.unpaidBadge]}>
                             <View style={[styles.paymentDot, paid ? styles.paidDot : styles.unpaidDot]} />
                             <Text style={[styles.paymentText, paid ? styles.paidText : styles.unpaidText]}>
-                              {booking.payment_status}
+                              {booking.payment_method === 'pay_at_hotel' && !paid ? 'pay at hotel' : booking.payment_status}
                             </Text>
                           </View>
                           <Text style={styles.price}>{formatMoney(booking.total_price)}</Text>
                         </View>
+                        {booking.voucher_code ? <Text style={styles.voucher}>Voucher {booking.voucher_code}</Text> : null}
                       </View>
                       <Ionicons name="chevron-forward" size={17} color="#9AA8AD" />
                     </TouchableOpacity>
@@ -784,5 +787,11 @@ const styles = StyleSheet.create({
     color: '#17354B',
     fontSize: 12,
     fontWeight: '900',
+  },
+  voucher: {
+    marginTop: 7,
+    color: '#087E8B',
+    fontSize: 11,
+    fontWeight: '800',
   },
 });

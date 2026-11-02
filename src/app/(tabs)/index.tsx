@@ -10,6 +10,9 @@ type HotelRow = {
   id: string;
   name: string;
   city: string;
+  location: string | null;
+  latitude: number | null;
+  longitude: number | null;
   rating: number | null;
   cover_image: string | null;
   description: string | null;
@@ -30,23 +33,36 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchHotels = useCallback(() => loadCached('hotels:home', async () => {
-    const { data: rows, error: fetchError } = await supabase
+  const fetchHotels = useCallback(async () => {
+    const baseQuery = async () => supabase
       .from('hotels')
       .select('id, name, city, rating, cover_image, description, rooms')
       .eq('approval_status', 'approved')
       .limit(6);
 
-    if (fetchError) throw fetchError;
-    return (rows ?? []) as HotelRow[];
-  }), []);
+    try {
+      const { data: rows, error: fetchError } = await baseQuery();
+      if (fetchError) throw fetchError;
+      return (rows ?? []) as HotelRow[];
+    } catch {
+      const { data: rows, error: fallbackError } = await supabase
+        .from('hotels')
+        .select('id, name, city, rating, cover_image, description, rooms')
+        .limit(6);
+
+      if (fallbackError) throw fallbackError;
+      return (rows ?? []) as HotelRow[];
+    }
+  }, []);
+
+  const loadHotelsFromCache = useCallback(() => loadCached('hotels:home', () => fetchHotels()), [fetchHotels]);
 
   useEffect(() => {
     let active = true;
 
     const loadHotels = async () => {
       try {
-        const data = await fetchHotels();
+        const data = await loadHotelsFromCache();
         if (active) {
           setHotels(data);
           setError(null);
@@ -64,7 +80,8 @@ export default function HomeScreen() {
     return () => {
       active = false;
     };
-  }, [fetchHotels]);
+  }, [loadHotelsFromCache]);
+
 
   const retryHotels = async () => {
     setLoading(true);
@@ -102,7 +119,9 @@ export default function HomeScreen() {
         .eq('read', false);
 
       if (fetchError) {
-        console.error('Unable to load unread notification count:', fetchError.message);
+        if (active) {
+          setUnreadNotificationCount({ userId, count: 0 });
+        }
         return;
       }
 
@@ -549,6 +568,192 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
+  },
+  locationSection: {
+    marginHorizontal: 20,
+    marginTop: 24,
+    padding: 16,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E7EBED',
+    boxShadow: '0px 8px 24px rgba(16, 58, 70, 0.08)',
+    elevation: 2,
+  },
+  locationSectionEyebrow: {
+    color: '#0A6A73',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+  },
+  locationSectionTitle: {
+    marginTop: 6,
+    color: '#17354B',
+    fontSize: 21,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  locationSectionText: {
+    marginTop: 8,
+    color: '#5E7382',
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  locationActionButton: {
+    marginTop: 16,
+    minHeight: 42,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#087E8B',
+  },
+  locationActionText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  mapCard: {
+    marginTop: 18,
+    padding: 12,
+    borderRadius: 18,
+    backgroundColor: '#F6FBFC',
+    borderWidth: 1,
+    borderColor: '#DDE9EE',
+  },
+  mapHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+  },
+  mapOpenButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: '#EAF6F6',
+  },
+  mapOpenButtonText: {
+    color: '#087E8B',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  mapPreviewWrap: {
+    marginTop: 12,
+    height: 180,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#DDEAF0',
+  },
+  mapPattern: {
+    flex: 1,
+    backgroundColor: '#EAF5F7',
+    borderWidth: 1,
+    borderColor: '#CFE1E6',
+    overflow: 'hidden',
+  },
+  mapGridOverlay: {
+    position: 'absolute',
+    inset: 0,
+    backgroundColor: '#E3F2F4',
+    opacity: 0.5,
+  },
+  roadHorizontalOne: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 64,
+    height: 22,
+    backgroundColor: '#CCE3E8',
+    transform: [{ rotate: '-8deg' }],
+    opacity: 0.75,
+  },
+  roadHorizontalTwo: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 120,
+    height: 18,
+    backgroundColor: '#D2E7EA',
+    transform: [{ rotate: '9deg' }],
+    opacity: 0.8,
+  },
+  roadVerticalOne: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 120,
+    width: 20,
+    backgroundColor: '#D2E5EA',
+    transform: [{ rotate: '7deg' }],
+    opacity: 0.7,
+  },
+  roadVerticalTwo: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    right: 78,
+    width: 18,
+    backgroundColor: '#D5E8EC',
+    transform: [{ rotate: '-10deg' }],
+    opacity: 0.7,
+  },
+  cityLabelOne: {
+    position: 'absolute',
+    left: 24,
+    top: 22,
+    color: '#17354B',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  cityLabelTwo: {
+    position: 'absolute',
+    right: 18,
+    bottom: 22,
+    color: '#17354B',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  mapMarker: {
+    position: 'absolute',
+    width: 18,
+    height: 18,
+    borderRadius: 10,
+    backgroundColor: '#087E8B',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.14,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  mapHotelRow: {
+    marginTop: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  mapHotelPill: {
+    maxWidth: '100%',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D8EAF0',
+  },
+  mapHotelPillSelected: {
+    backgroundColor: '#EAF7F8',
+    borderColor: '#087E8B',
+  },
+  mapHotelPillText: {
+    color: '#1D3C4C',
+    fontSize: 11,
+    fontWeight: '700',
+    maxWidth: 160,
   },
   citySection: {
     paddingTop: 25,

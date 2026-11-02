@@ -1,11 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import MobileAuthHeader from '@/components/auth/MobileAuthHeader';
+import { buildBackendUrl, loadPlatformSettings, type PlatformSettings } from '@/lib/backend';
 import { useAuthStore } from '@/store/auth.store';
 
 const vendorTermsVersion = 'sl-stay-vendor-terms-2026-10';
+const paymentPolicyVersion = 'sl-stay-payment-policy-2026-11';
 
 const vendorRules = [
   {
@@ -39,8 +41,18 @@ export default function RegisterVendorScreen() {
   const [password, setPassword] = useState('');
   const [planId, setPlanId] = useState<'free' | 'pro'>('free');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [hasViewedPaymentDoc, setHasViewedPaymentDoc] = useState(false);
+  const [platformSettings, setPlatformSettings] = useState<PlatformSettings | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void loadPlatformSettings()
+      .then((settings) => { if (active) setPlatformSettings(settings); })
+      .catch(() => { if (active) setPlatformSettings(null); });
+    return () => { active = false; };
+  }, []);
 
   const submit = async () => {
     setError(null);
@@ -49,8 +61,8 @@ export default function RegisterVendorScreen() {
       setError('Please complete all fields.');
       return;
     }
-    if (!acceptedTerms) {
-      setError('Please read and accept the SL Stay vendor rules.');
+    if (!acceptedTerms || !hasViewedPaymentDoc) {
+      setError('Open the payment policy and accept the SL Stay vendor rules and payment terms.');
       return;
     }
 
@@ -61,6 +73,7 @@ export default function RegisterVendorScreen() {
         businessName: businessName.trim(),
         termsVersion: vendorTermsVersion,
         planId,
+        paymentPolicyVersion,
       });
 
       router.replace({
@@ -102,8 +115,8 @@ export default function RegisterVendorScreen() {
         <Text style={styles.sectionTitle}>Choose your vendor plan</Text>
         <View style={styles.planRow}>
           {[
-            { id: 'free' as const, title: 'FREE', price: 'Le 0', description: '1 hotel · 10% commission' },
-            { id: 'pro' as const, title: 'PRO', price: 'Le 100 one-time', description: 'Up to 5 hotels · 5% commission · Verified badge' },
+            { id: 'free' as const, title: 'FREE', price: 'Le 0', description: '1 hotel · Basic listing tools' },
+            { id: 'pro' as const, title: 'PRO', price: 'Le 100 one-time', description: 'Up to 5 hotels · Verified badge' },
           ].map((plan) => {
             const selected = planId === plan.id;
             return (
@@ -126,9 +139,14 @@ export default function RegisterVendorScreen() {
           PRO is a one-time payment. You can complete the upgrade after your vendor account is approved.
         </Text>
         <View style={styles.explanationBox}>
-          <Text style={styles.explanationTitle}>How it works</Text>
+          <Text style={styles.explanationTitle}>Booking commission</Text>
           <Text style={styles.explanationText}>
-            Customers pay through Monime. HM keeps the plan commission (10% FREE or 5% PRO), and the remaining hotel earnings appear on your dashboard. Payouts are manual for this project.
+            {platformSettings
+              ? platformSettings.commission_type === 'percentage'
+                ? `A ${platformSettings.commission_value}% platform commission applies to paid bookings for every vendor plan.`
+                : `A flat Le ${Number(platformSettings.commission_value).toLocaleString()} platform fee applies to each paid booking.`
+              : 'The platform commission is set by the administrator and shown before each booking is paid.'}
+            {' '}Payouts are recorded after checkout and transferred manually.
           </Text>
         </View>
 
@@ -190,17 +208,29 @@ export default function RegisterVendorScreen() {
           </ScrollView>
         </View>
 
+        <Text style={styles.paymentPolicyPrompt}>Please read how our payment &amp; commission system works:</Text>
+        <a
+          href={buildBackendUrl('/docs/vendor-payment-system.pdf')}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => setHasViewedPaymentDoc(true)}
+          style={{ color: '#087E8B', fontWeight: 800, marginTop: 6, marginBottom: 13 }}
+        >
+          View Payment System PDF
+        </a>
+
         <TouchableOpacity
-          style={styles.agreementRow}
-          onPress={() => setAcceptedTerms((current) => !current)}
+          style={[styles.agreementRow, !hasViewedPaymentDoc && styles.agreementDisabled]}
+          onPress={() => hasViewedPaymentDoc && setAcceptedTerms((current) => !current)}
+          disabled={!hasViewedPaymentDoc}
           accessibilityRole="checkbox"
-          accessibilityState={{ checked: acceptedTerms }}
-          accessibilityLabel="I have read and agree to the SL Stay vendor rules"
+          accessibilityState={{ checked: acceptedTerms, disabled: !hasViewedPaymentDoc }}
+          accessibilityLabel="I have read and agree to the SL Stay vendor rules and payment policy"
         >
           <View style={[styles.checkbox, acceptedTerms ? styles.checkboxSelected : null]}>
             {acceptedTerms ? <Ionicons name="checkmark" size={15} color="#FFFFFF" /> : null}
           </View>
-          <Text style={styles.agreementText}>I have read and agree to the SL Stay vendor rules and confirm that my business information is accurate.</Text>
+          <Text style={styles.agreementText}>I have read and agree to the SL Stay vendor rules and payment policy, and confirm that my business information is accurate.</Text>
         </TouchableOpacity>
 
         {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
@@ -341,10 +371,10 @@ const styles = StyleSheet.create({
   },
   planCardSelected: {
     borderWidth: 2,
-    borderColor: '#2563EB',
+    borderColor: '#087E8B',
   },
   recommended: {
-    color: '#2563EB',
+    color: '#087E8B',
     fontSize: 8,
     fontWeight: '900',
     letterSpacing: 0.7,
@@ -443,11 +473,20 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 15,
   },
+  paymentPolicyPrompt: {
+    marginTop: 16,
+    color: '#526974',
+    fontSize: 12,
+    lineHeight: 18,
+  },
   agreementRow: {
     marginTop: 14,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
+  },
+  agreementDisabled: {
+    opacity: 0.55,
   },
   checkbox: {
     width: 22,

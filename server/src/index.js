@@ -15,11 +15,26 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:8081,ex
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
+const isPrivateDevelopmentOrigin = (origin) => {
+  if (process.env.NODE_ENV === 'production') return false;
+  try {
+    const url = new URL(origin);
+    if (!['http:', 'https:'].includes(url.protocol)) return false;
+    const host = url.hostname;
+    return host === 'localhost'
+      || host === '127.0.0.1'
+      || /^10(?:\.\d{1,3}){3}$/.test(host)
+      || /^192\.168(?:\.\d{1,3}){2}$/.test(host)
+      || /^172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2}$/.test(host);
+  } catch {
+    return false;
+  }
+};
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin) || isPrivateDevelopmentOrigin(origin)) {
         callback(null, true);
         return;
       }
@@ -178,6 +193,8 @@ app.post('/api/auth/signup', async (req, res) => {
   const role = req.body?.role === 'vendor' ? 'vendor' : 'user';
   const businessName = typeof req.body?.businessName === 'string' ? req.body.businessName.trim() : '';
   const termsVersion = typeof req.body?.termsVersion === 'string' ? req.body.termsVersion : '';
+  const paymentPolicyVersion = typeof req.body?.paymentPolicyVersion === 'string' ? req.body.paymentPolicyVersion : '';
+  const paymentPolicyAgreed = req.body?.paymentPolicyAgreed === true;
   const requestedPlanId = req.body?.planId === 'pro' ? 'pro' : 'free';
   if (role === 'vendor' && req.body?.planId !== undefined && !['free', 'pro'].includes(req.body.planId)) {
     return res.status(400).json({ ok: false, error: 'Choose a valid vendor plan.' });
@@ -186,8 +203,8 @@ app.post('/api/auth/signup', async (req, res) => {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !fullName || password.length < 6) {
     return res.status(400).json({ ok: false, error: 'Enter a valid email, full name, and password of at least six characters.' });
   }
-  if (role === 'vendor' && (!businessName || !termsVersion)) {
-    return res.status(400).json({ ok: false, error: 'Vendor business details and acceptance of the vendor rules are required.' });
+  if (role === 'vendor' && (!businessName || !termsVersion || !paymentPolicyVersion || !paymentPolicyAgreed)) {
+    return res.status(400).json({ ok: false, error: 'Vendor business details and acceptance of the vendor and payment policies are required.' });
   }
 
   const cooldownRemaining = emailCooldownRemaining(email);
@@ -203,6 +220,9 @@ app.post('/api/auth/signup', async (req, res) => {
           business_name: businessName,
           vendor_terms_version: termsVersion,
           vendor_terms_accepted_at: new Date().toISOString(),
+          vendor_payment_policy_agreed: true,
+          vendor_payment_policy_agreed_at: new Date().toISOString(),
+          vendor_payment_policy_version: paymentPolicyVersion,
           pending_plan_id: requestedPlanId,
         }
       : {}),
@@ -387,7 +407,7 @@ const getOwnedBooking = async (bookingId, userId) => {
   }
 
   const rows = await supabaseAdminRequest(
-    `bookings?id=eq.${encodeURIComponent(bookingId)}&user_id=eq.${encodeURIComponent(userId)}&select=id,user_id,total_price,payment_status,booking_status,created_at&limit=1`,
+    `bookings?id=eq.${encodeURIComponent(bookingId)}&user_id=eq.${encodeURIComponent(userId)}&select=id,user_id,total_price,payment_status,booking_status,payment_method,created_at&limit=1`,
   );
   return rows?.[0] ?? null;
 };
@@ -649,6 +669,185 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true, status: 'ready', provider: 'monime' });
 });
 
+const getPlatformSettings = async () => {
+  const rows = await supabaseAdminRequest(
+    'platform_settings?id=eq.1&select=id,commission_type,commission_value,currency,updated_at&limit=1',
+  );
+  return rows?.[0] ?? {
+    id: 1,
+    commission_type: 'percentage',
+    commission_value: 15,
+    currency: 'SLE',
+  };
+};
+
+const requireAdmin = async (req, res) => {
+  const user = await authenticateRequest(req);
+  if (!user?.id) {
+    res.status(401).json({ ok: false, error: 'Sign in is required.' });
+    return false;
+  }
+  const rows = await supabaseAdminRequest(
+    `users?id=eq.${encodeURIComponent(user.id)}&role=eq.admin&disabled=eq.false&select=id&limit=1`,
+  );
+  if (!rows?.length) {
+    res.status(403).json({ ok: false, error: 'Administrator access is required.' });
+    return false;
+  }
+  return user.id;
+};
+
+app.get('/api/settings', async (_req, res) => {
+  try {
+    const settings = await getPlatformSettings();
+    return res.json({ ok: true, settings });
+  } catch (error) {
+    console.error('Unable to load platform settings:', error);
+    return res.status(500).json({ ok: false, error: 'Unable to load platform settings.' });
+  }
+});
+
+app.put('/api/admin/settings', async (req, res) => {
+  try {
+    const adminId = await requireAdmin(req, res);
+    if (!adminId) return;
+
+    const commissionType = req.body?.commission_type;
+    const commissionValue = Number(req.body?.commission_value);
+    const currency = req.body?.currency;
+    if (!['percentage', 'fixed_amount'].includes(commissionType)) {
+      return res.status(400).json({ ok: false, error: 'Choose percentage or fixed amount.' });
+    }
+    if (!Number.isFinite(commissionValue) || commissionValue < 0) {
+      return res.status(400).json({ ok: false, error: 'Enter a valid commission value.' });
+    }
+    if (commissionType === 'percentage' && (commissionValue < 5 || commissionValue > 30)) {
+      return res.status(400).json({ ok: false, error: 'Percentage commission must be between 5% and 30%.' });
+    }
+    if (commissionType === 'fixed_amount' && commissionValue > 1_000_000_000) {
+      return res.status(400).json({ ok: false, error: 'Fixed commission exceeds the allowed amount.' });
+    }
+    if (currency !== 'SLE') {
+      return res.status(400).json({ ok: false, error: 'Only Sierra Leonean leones (SLE) are available for bookings.' });
+    }
+
+    const rows = await supabaseAdminRequest('platform_settings?on_conflict=id', {
+      method: 'POST',
+      body: {
+        id: 1,
+        commission_type: commissionType,
+        commission_value: commissionValue,
+        currency,
+        updated_by: adminId,
+      },
+      prefer: 'resolution=merge-duplicates,return=representation',
+    });
+    return res.json({ ok: true, settings: rows?.[0] ?? await getPlatformSettings() });
+  } catch (error) {
+    console.error('Unable to update platform settings:', error);
+    return res.status(500).json({ ok: false, error: error instanceof Error ? error.message : 'Unable to update platform settings.' });
+  }
+});
+
+const escapePdfText = (value) => value
+  .replaceAll('\\', '\\\\')
+  .replaceAll('(', '\\(')
+  .replaceAll(')', '\\)')
+  .replace(/[^\x20-\x7E]/g, '?');
+
+const wrapPdfText = (value, maxLength = 88) => {
+  const words = value.split(/\s+/);
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const nextLine = line ? `${line} ${word}` : word;
+    if (nextLine.length > maxLength && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = nextLine;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+};
+
+const buildVendorPaymentPdf = (settings) => {
+  const total = 1_000_000;
+  const commission = settings.commission_type === 'fixed_amount'
+    ? Math.min(total, Number(settings.commission_value))
+    : Math.round(total * Number(settings.commission_value) / 100);
+  const vendorPayout = total - commission;
+  const rateDescription = settings.commission_type === 'fixed_amount'
+    ? `a flat ${settings.currency} ${Number(settings.commission_value).toLocaleString('en-US')} per paid booking`
+    : `${Number(settings.commission_value)}% of each paid booking`;
+  const contentLines = [
+    { text: 'How Our Commission System Works', font: 'F2', size: 19, gap: 27 },
+    { text: 'SL Stay Partner Payment Guide | Currency: Sierra Leonean leones (SLE)', font: 'F1', size: 10, gap: 22 },
+    { text: 'Section 1: Free to List', font: 'F2', size: 12, gap: 17 },
+    { text: 'There is no listing fee to add a property. Vendor plans may change listing limits, but they do not change the platform commission.', font: 'F1', size: 10 },
+    { text: 'Section 2: Commission on Paid Bookings', font: 'F2', size: 12, gap: 17 },
+    { text: `The current platform commission is ${rateDescription}. It is charged only when a booking payment is received.`, font: 'F1', size: 10 },
+    { text: 'The current rate is set by the platform administrator and may change. The rate in this document is current at the time it is generated.', font: 'F1', size: 10 },
+    { text: 'Section 3: When and How You Get Paid', font: 'F2', size: 12, gap: 17 },
+    { text: 'After the guest checks out, the vendor share becomes eligible for payout. Transfers are processed manually and the amount is shown in your earnings history.', font: 'F1', size: 10 },
+    { text: 'Section 4: No Bypass Policy', font: 'F2', size: 12, gap: 17 },
+    { text: 'Guest and vendor contact details are protected before a booking is paid or confirmed. Keep reservations and payments on SL Stay so bookings remain protected, recorded, and eligible for support.', font: 'F1', size: 10 },
+    { text: 'Section 5: Featured Listings', font: 'F2', size: 12, gap: 17 },
+    { text: 'Featured listing options are coming soon. Any paid promotion will be clearly described before it is offered.', font: 'F1', size: 10 },
+    { text: 'Section 6: Example', font: 'F2', size: 12, gap: 17 },
+    { text: `Customer pays Le ${total.toLocaleString('en-US')} - Admin gets Le ${commission.toLocaleString('en-US')} - You get Le ${vendorPayout.toLocaleString('en-US')}.`, font: 'F1', size: 10 },
+    { text: 'This example uses the current platform setting. The actual commission and payout are calculated from each booking total.', font: 'F1', size: 10 },
+  ];
+
+  let y = 744;
+  const commands = [];
+  for (const line of contentLines) {
+    const wrapped = wrapPdfText(line.text);
+    for (const text of wrapped) {
+      commands.push(`BT /${line.font} ${line.size} Tf 54 ${y} Td (${escapePdfText(text)}) Tj ET`);
+      y -= line.size === 19 ? 24 : line.size === 12 ? 18 : 15;
+    }
+    y -= line.gap ?? 0;
+  }
+
+  const stream = `${commands.join('\n')}\n`;
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>',
+    `<< /Length ${Buffer.byteLength(stream, 'ascii')} >>\nstream\n${stream}endstream`,
+  ];
+  let pdf = '%PDF-1.4\n';
+  const offsets = [0];
+  objects.forEach((object, index) => {
+    offsets.push(Buffer.byteLength(pdf, 'ascii'));
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  });
+  const xrefOffset = Buffer.byteLength(pdf, 'ascii');
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  offsets.slice(1).forEach((offset) => { pdf += `${String(offset).padStart(10, '0')} 00000 n \n`; });
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  return Buffer.from(pdf, 'ascii');
+};
+
+app.get('/docs/vendor-payment-system.pdf', async (_req, res) => {
+  try {
+    const settings = await getPlatformSettings();
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'inline; filename="vendor-payment-system.pdf"',
+      'Cache-Control': 'no-store',
+    });
+    return res.send(buildVendorPaymentPdf(settings));
+  } catch (error) {
+    console.error('Unable to generate vendor payment policy PDF:', error);
+    return res.status(500).json({ ok: false, error: 'Unable to generate the payment policy document.' });
+  }
+});
+
 app.post('/api/payments/create', async (req, res) => {
   try {
     const user = await authenticateRequest(req);
@@ -664,7 +863,10 @@ app.post('/api/payments/create', async (req, res) => {
     if (booking.payment_status === 'paid') {
       return res.status(409).json({ ok: false, error: 'This booking has already been paid' });
     }
-    if (booking.booking_status === 'cancelled' || booking.booking_status === 'completed') {
+    if (booking.payment_method !== 'monime') {
+      return res.status(409).json({ ok: false, error: 'This booking is set to pay at the hotel.' });
+    }
+    if (['cancelled', 'completed', 'checked_out', 'no_show'].includes(booking.booking_status)) {
       return res.status(409).json({ ok: false, error: 'Payment is not available for this booking' });
     }
     if (booking.payment_status === 'failed' || booking.payment_status === 'refunded') {

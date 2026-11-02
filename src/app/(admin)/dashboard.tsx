@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { loadAdminOverview, type AdminOverview } from '@/services/admin';
+import WalletControls from '@/components/finance/WalletControls';
 
 const formatDate = (value: string) => new Date(value).toLocaleString();
 
@@ -19,6 +20,9 @@ const metrics = [
   { key: 'vendors', label: 'Total partners', icon: 'briefcase-outline', tint: '#7861BB', background: '#F1EDFC' },
   { key: 'hotels', label: 'Properties', icon: 'business-outline', tint: '#087E8B', background: '#E8F5F3' },
   { key: 'bookings', label: 'Total bookings', icon: 'calendar-outline', tint: '#C47A2C', background: '#FFF3E5' },
+  { key: 'commissionEarned', label: 'Total commission earned', icon: 'trending-up-outline', tint: '#087E8B', background: '#E8F5F3' },
+  { key: 'vendorPayouts', label: 'Total vendor payouts', icon: 'wallet-outline', tint: '#2879B8', background: '#EAF4FC' },
+  { key: 'suspiciousNoShows', label: 'Suspicious no-show flags', icon: 'alert-circle-outline', tint: '#C47A2C', background: '#FFF3E5' },
 ] as const;
 
 const quickLinks = [
@@ -78,6 +82,8 @@ export default function AdminDashboardScreen() {
         </View>
       </View>
 
+      <WalletControls />
+
       {loading ? <Text style={styles.state}>Loading your overview…</Text> : null}
       {error ? (
         <View style={styles.errorCard}>
@@ -111,7 +117,11 @@ export default function AdminDashboardScreen() {
                   </View>
                   <Ionicons name="trending-up-outline" size={17} color="#A0AFB5" />
                 </View>
-                <Text style={styles.metricValue}>{overview[metric.key].toLocaleString()}</Text>
+                <Text style={styles.metricValue}>
+                  {metric.key === 'commissionEarned' || metric.key === 'vendorPayouts'
+                    ? `Le ${overview[metric.key].toLocaleString()}`
+                    : overview[metric.key].toLocaleString()}
+                </Text>
                 <Text style={styles.metricLabel}>{metric.label}</Text>
               </View>
             ))}

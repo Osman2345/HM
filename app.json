@@ -27,7 +27,7 @@
       "package": "com.trench.hotelmanagement"
     },
     "web": {
-      "output": "static",
+      "output": "single",
       "favicon": "./assets/images/icon.png"
     },
     "plugins": [

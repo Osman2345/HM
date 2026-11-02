@@ -120,7 +120,6 @@ export default function TabsLayout() {
           }}
         />
         <Tabs.Screen name="favorites" options={{ href: desktopWeb ? '/(tabs)/favorites' : null }} />
-        <Tabs.Screen name="map" options={{ href: null }} />
         <Tabs.Screen
           name="bookings"
           options={{

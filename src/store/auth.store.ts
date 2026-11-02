@@ -28,7 +28,7 @@ interface AuthState {
     password: string,
     fullName: string,
     role?: AppRole,
-    vendorApplication?: { businessName: string; termsVersion: string; planId: 'free' | 'pro' },
+    vendorApplication?: { businessName: string; termsVersion: string; planId: 'free' | 'pro'; paymentPolicyVersion: string },
   ) => Promise<{ userId: string; otpLength: number; expiresInSeconds: number }>;
   verifySignUpOtp: (email: string, token: string, type?: 'signup' | 'magiclink') => Promise<void>;
   resendSignUpOtp: (
@@ -231,6 +231,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               businessName: vendorApplication.businessName,
               termsVersion: vendorApplication.termsVersion,
               planId: vendorApplication.planId,
+              paymentPolicyVersion: vendorApplication.paymentPolicyVersion,
+              paymentPolicyAgreed: true,
             }
           : {}),
       });

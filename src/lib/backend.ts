@@ -58,6 +58,8 @@ export const createBackendAccount = async (account: {
   businessName?: string;
   termsVersion?: string;
   planId?: 'free' | 'pro';
+  paymentPolicyVersion?: string;
+  paymentPolicyAgreed?: boolean;
 }): Promise<{ userId: string; otpLength: number; expiresInSeconds: number }> => {
   const payload = await postBackendJson('/api/auth/signup', account);
   if (
@@ -115,6 +117,35 @@ const getAuthorizationHeaders = async () => {
     Authorization: `Bearer ${data.session.access_token}`,
   };
 };
+
+export interface PlatformSettings {
+  id: number;
+  commission_type: 'percentage' | 'fixed_amount';
+  commission_value: number;
+  currency: 'SLE';
+  updated_at?: string;
+}
+
+const requestPlatformSettings = async (
+  method: 'GET' | 'PUT',
+  body?: Pick<PlatformSettings, 'commission_type' | 'commission_value' | 'currency'>,
+): Promise<PlatformSettings> => {
+  const response = await fetch(buildBackendUrl(method === 'GET' ? '/api/settings' : '/api/admin/settings'), {
+    method,
+    headers: method === 'GET' ? undefined : await getAuthorizationHeaders(),
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const payload = await response.json() as { ok?: boolean; settings?: PlatformSettings; error?: string };
+  if (!response.ok || !payload.ok || !payload.settings) {
+    throw new Error(payload.error || `Unable to ${method === 'GET' ? 'load' : 'save'} platform settings.`);
+  }
+  return payload.settings;
+};
+
+export const loadPlatformSettings = () => requestPlatformSettings('GET');
+
+export const savePlatformSettings = (settings: Pick<PlatformSettings, 'commission_type' | 'commission_value' | 'currency'>) =>
+  requestPlatformSettings('PUT', settings);
 
 export const sendVendorDecisionEmail = async (
   vendorId: string,
@@ -189,7 +220,7 @@ const postPaymentRequest = async (
     }
     if (error instanceof TypeError) {
       throw new Error(
-        'Cannot reach the payment server. Start it with "npm run server". If you are using a physical phone, set EXPO_PUBLIC_BACKEND_URL to your computer’s LAN address (for example http://192.168.1.10:3000), allow port 3000 through the firewall, then restart Expo. Your booking is saved; return to its details and tap Pay now to retry.',
+        'Cannot reach the payment server. Confirm "npm run server" is running and your phone and computer share the same network. Allow port 3000 through the firewall. Expo development mode uses the current Expo host automatically; if you use a custom backend, set EXPO_PUBLIC_BACKEND_URL to its reachable URL and restart Expo. Your booking is saved; return to its details and tap Pay now to retry.',
       );
     }
     throw error;

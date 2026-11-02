@@ -184,7 +184,7 @@ function SearchResults({ initialQuery }: { initialQuery: string }) {
         <View style={styles.searchBar}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.canGoBack() ? router.back() : router.push('/(tabs)')}
+            onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')}
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
@@ -225,7 +225,7 @@ function SearchResults({ initialQuery }: { initialQuery: string }) {
         <TouchableOpacity
           style={styles.controlButton}
           activeOpacity={0.75}
-          onPress={() => router.push('/(tabs)/map')}
+          onPress={() => router.push('/map')}
         >
           <Ionicons name="map-outline" size={23} color="#17212C" />
           <Text style={styles.controlLabel}>Map</Text>

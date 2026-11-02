@@ -30,6 +30,8 @@ type RoomAvailability = {
   available_rooms: number;
 };
 
+type BookingPaymentMethod = 'monime' | 'pay_at_hotel';
+
 const formatDate = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -57,13 +59,16 @@ const getNights = (checkIn: string, checkOut: string) => {
 export default function NewBookingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ hotelId?: string | string[] }>();
+  const params = useLocalSearchParams<{ hotelId?: string | string[]; roomType?: string | string[]; checkIn?: string; checkOut?: string }>();
   const hotelId = Array.isArray(params.hotelId) ? params.hotelId[0] : params.hotelId ?? '';
-  const [checkIn, setCheckIn] = useState(() => getDateOffset(1));
-  const [checkOut, setCheckOut] = useState(() => getDateOffset(2));
+  const preselectedRoomType = Array.isArray(params.roomType) ? params.roomType[0] : params.roomType ?? '';
+  const [checkIn, setCheckIn] = useState(() => params.checkIn ?? getDateOffset(1));
+  const [checkOut, setCheckOut] = useState(() => params.checkOut ?? getDateOffset(2));
   const [guests, setGuests] = useState('2');
   const [rooms, setRooms] = useState('1');
   const [hotelName, setHotelName] = useState('');
+  const [hotelCheckInTime, setHotelCheckInTime] = useState<string | null>(null);
+  const [hotelCheckOutTime, setHotelCheckOutTime] = useState<string | null>(null);
   const [roomOptions, setRoomOptions] = useState<HotelRoom[]>([]);
   const [availabilityResult, setAvailabilityResult] = useState<{
     key: string;
@@ -71,6 +76,7 @@ export default function NewBookingScreen() {
     error: string | null;
   } | null>(null);
   const [roomType, setRoomType] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<BookingPaymentMethod>('monime');
   const [loadingHotel, setLoadingHotel] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,8 +95,25 @@ export default function NewBookingScreen() {
   const selectedAvailability = availability.find((room) => room.room_type === roomType);
   const roomCount = Number(rooms);
   const guestCount = Number(guests);
+  const standardCheckoutWindowHours = hotelCheckOutTime ? (() => {
+    const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(hotelCheckOutTime);
+    if (!match) return null;
+    const [hours, minutes] = match.slice(1).map(Number);
+    return hours * 60 + minutes;
+  })() : null;
+
+  const lateCheckoutFee = (() => {
+    if (!selectedRoom || !standardCheckoutWindowHours || !nights || nights <= 1) return 0;
+
+    const selectedCheckoutMinutes = 12 * 60;
+    const hotelCheckoutMinutes = standardCheckoutWindowHours;
+    if (selectedCheckoutMinutes <= hotelCheckoutMinutes) return 0;
+
+    return Math.max(0, Math.round(selectedRoom.price_per_night * (nights - 1) * 0.15));
+  })();
+
   const totalPrice = selectedRoom && Number.isInteger(roomCount) && roomCount > 0
-    ? selectedRoom.price_per_night * nights * roomCount
+    ? selectedRoom.price_per_night * nights * roomCount + lateCheckoutFee * roomCount
     : 0;
 
   useEffect(() => {
@@ -107,7 +130,7 @@ export default function NewBookingScreen() {
       try {
         const { data, error: hotelError } = await supabase
           .from('hotels')
-          .select('name, rooms')
+          .select('name, rooms, check_in_time, check_out_time')
           .eq('id', hotelId)
           .eq('approval_status', 'approved')
           .maybeSingle();
@@ -121,8 +144,12 @@ export default function NewBookingScreen() {
           const roomData = (data.rooms as HotelRoom[] | null) ?? [];
           const roomsWithCapacity = roomData.filter((room) => Boolean(room.type));
           setHotelName(data.name);
+          setHotelCheckInTime(data.check_in_time ?? null);
+          setHotelCheckOutTime(data.check_out_time ?? null);
           setRoomOptions(roomsWithCapacity);
-          setRoomType(roomsWithCapacity[0]?.type ?? '');
+
+          const initialRoomType = roomsWithCapacity.find((room) => room.type === preselectedRoomType)?.type ?? roomsWithCapacity[0]?.type ?? '';
+          setRoomType(initialRoomType);
           if (roomsWithCapacity[0]) {
             setGuests(String(Math.min(2, Math.max(1, roomsWithCapacity[0].capacity_guests))));
           }
@@ -139,7 +166,7 @@ export default function NewBookingScreen() {
     return () => {
       active = false;
     };
-  }, [hotelId]);
+  }, [hotelId, preselectedRoomType]);
 
   useEffect(() => {
     let active = true;
@@ -229,6 +256,7 @@ export default function NewBookingScreen() {
         p_check_out: checkOut,
         p_guests: guestCount,
         p_rooms: roomCount,
+        p_payment_method: paymentMethod,
       });
       if (bookingError) throw bookingError;
 
@@ -237,6 +265,11 @@ export default function NewBookingScreen() {
       invalidateCached(`bookings:${authData.user.id}`);
       invalidateCached('vendor-bookings:');
       invalidateCached(`vendor-dashboard:${authData.user.id}`);
+
+      if (paymentMethod === 'pay_at_hotel') {
+        router.replace({ pathname: '/booking/[id]', params: { id: booking.id } });
+        return;
+      }
 
       try {
         const payment = await createBackendPayment({ bookingId: booking.id });
@@ -272,7 +305,19 @@ export default function NewBookingScreen() {
       contentContainerStyle={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 28 }]}
       keyboardShouldPersistTaps="handled"
     >
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityRole="button">
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else if (hotelId) {
+            router.replace({ pathname: '/hotel/[id]', params: { id: hotelId } });
+          } else {
+            router.replace('/(tabs)/search');
+          }
+        }}
+        accessibilityRole="button"
+      >
         <Ionicons name="arrow-back" size={20} color="#0F172A" />
         <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
@@ -320,6 +365,11 @@ export default function NewBookingScreen() {
           <Ionicons name="moon-outline" size={14} color="#087E8B" />
           <Text style={styles.nightText}>{nights} {nights === 1 ? 'night' : 'nights'}</Text>
         </View>
+        {hotelCheckInTime || hotelCheckOutTime ? (
+          <Text style={styles.inlineHint}>
+            Hotel check-in: {hotelCheckInTime ?? 'Flexible'} • Hotel check-out: {hotelCheckOutTime ?? 'Flexible'}
+          </Text>
+        ) : null}
         {!datesValid && (checkIn || checkOut) ? <Text style={styles.inlineHint}>Use YYYY-MM-DD. Check-out must be after check-in.</Text> : null}
       </View>
 
@@ -406,12 +456,50 @@ export default function NewBookingScreen() {
         </View>
       </View>
 
+      <View style={styles.stepRow}>
+        <View style={styles.stepNumber}><Text style={styles.stepNumberText}>4</Text></View>
+        <View><Text style={styles.stepTitle}>Payment option</Text><Text style={styles.stepHint}>All reservations stay recorded in SL Stay</Text></View>
+      </View>
+      <View style={styles.paymentOptions}>
+        <TouchableOpacity
+          accessibilityRole="radio"
+          accessibilityState={{ selected: paymentMethod === 'monime' }}
+          style={[styles.paymentOption, paymentMethod === 'monime' && styles.paymentOptionSelected]}
+          onPress={() => setPaymentMethod('monime')}
+          disabled={busy}
+        >
+          <Ionicons name="card-outline" size={20} color={paymentMethod === 'monime' ? '#087E8B' : '#718397'} />
+          <View style={styles.paymentOptionCopy}>
+            <Text style={styles.paymentOptionTitle}>Pay securely now</Text>
+            <Text style={styles.paymentOptionHint}>Complete payment through Monime</Text>
+          </View>
+          <Ionicons name={paymentMethod === 'monime' ? 'radio-button-on' : 'radio-button-off'} size={19} color="#087E8B" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          accessibilityRole="radio"
+          accessibilityState={{ selected: paymentMethod === 'pay_at_hotel' }}
+          style={[styles.paymentOption, paymentMethod === 'pay_at_hotel' && styles.paymentOptionSelected]}
+          onPress={() => setPaymentMethod('pay_at_hotel')}
+          disabled={busy}
+        >
+          <Ionicons name="business-outline" size={20} color={paymentMethod === 'pay_at_hotel' ? '#087E8B' : '#718397'} />
+          <View style={styles.paymentOptionCopy}>
+            <Text style={styles.paymentOptionTitle}>Pay at the hotel</Text>
+            <Text style={styles.paymentOptionHint}>The vendor records checkout and payment</Text>
+          </View>
+          <Ionicons name={paymentMethod === 'pay_at_hotel' ? 'radio-button-on' : 'radio-button-off'} size={19} color="#087E8B" />
+        </TouchableOpacity>
+      </View>
+
       {selectedRoom && nights > 0 ? (
         <View style={styles.summaryCard}>
           <Text style={styles.summaryHeading}>Price summary</Text>
-          <View style={styles.summaryLine}><Text style={styles.summaryLabel}>Le {Number(selectedRoom.price_per_night).toLocaleString()} × {nights} {nights === 1 ? 'night' : 'nights'} × {Math.max(1, roomCount || 1)} {Math.max(1, roomCount || 1) === 1 ? 'room' : 'rooms'}</Text><Text style={styles.summaryAmount}>Le {totalPrice.toLocaleString()}</Text></View>
+          <View style={styles.summaryLine}><Text style={styles.summaryLabel}>Stay charge</Text><Text style={styles.summaryAmount}>Le {(selectedRoom.price_per_night * nights * roomCount).toLocaleString()}</Text></View>
+          {lateCheckoutFee > 0 ? (
+            <View style={styles.summaryLine}><Text style={styles.summaryLabel}>Late checkout fee</Text><Text style={styles.summaryAmount}>Le {lateCheckoutFee.toLocaleString()}</Text></View>
+          ) : null}
           <View style={styles.summaryTotalRow}><Text style={styles.summaryTotalLabel}>Total</Text><Text style={styles.summaryTotal}>Le {totalPrice.toLocaleString()}</Text></View>
-          <Text style={styles.summaryNote}>Final amount shown in Sierra Leonean leones.</Text>
+          <Text style={styles.summaryNote}>Final amount shown in Sierra Leonean leones. Any late checkout beyond the hotel’s standard time is included here.</Text>
         </View>
       ) : null}
 
@@ -423,7 +511,7 @@ export default function NewBookingScreen() {
         disabled={busy || loadingHotel || loadingAvailability || !selectedAvailability || !selectedAvailability.available_rooms}
       >
         {busy ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="lock-closed-outline" size={19} color="#FFFFFF" />}
-        <Text style={styles.confirmButtonText}>{busy ? 'Reserving your room…' : 'Confirm & continue to payment'}</Text>
+        <Text style={styles.confirmButtonText}>{busy ? 'Reserving your room…' : paymentMethod === 'monime' ? 'Confirm & continue to payment' : 'Confirm pay-at-hotel booking'}</Text>
       </TouchableOpacity>
       <Text style={styles.secureNote}><Ionicons name="shield-checkmark-outline" size={14} color="#64748B" />  Secure checkout · Room held for 15 minutes</Text>
     </ScrollView>
@@ -445,6 +533,12 @@ const styles = StyleSheet.create({
   stepNumberText: { color: '#087E8B', fontWeight: '800', fontSize: 13 },
   stepTitle: { color: '#102A36', fontWeight: '700', fontSize: 15 },
   stepHint: { color: '#7A8B94', fontSize: 11, marginTop: 1 },
+  paymentOptions: { gap: 8 },
+  paymentOption: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 13, paddingVertical: 10, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, backgroundColor: '#FFFFFF' },
+  paymentOptionSelected: { borderColor: '#087E8B', backgroundColor: '#F2FAFA' },
+  paymentOptionCopy: { flex: 1 },
+  paymentOptionTitle: { color: '#17354B', fontSize: 13, fontWeight: '800' },
+  paymentOptionHint: { marginTop: 3, color: '#718397', fontSize: 11 },
   card: { padding: 16, backgroundColor: '#FFFFFF', borderRadius: 18, borderWidth: 1, borderColor: '#E7EEF1' },
   dateRow: { flexDirection: 'row', alignItems: 'center' },
   dateField: { flex: 1 },

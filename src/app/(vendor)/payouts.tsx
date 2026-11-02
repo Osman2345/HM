@@ -6,10 +6,10 @@ import { useAuthStore } from '@/store/auth.store';
 
 interface VendorPayout {
   id: string;
-  amount: number;
-  commission: number;
-  hotel_share: number;
-  status: string;
+  total_amount: number;
+  commission_amount: number;
+  hotel_payout_amount: number;
+  vendor_payout_status: string;
   created_at: string;
   hotels: { name: string; owner_id: string } | null;
 }
@@ -40,8 +40,8 @@ export default function VendorPayoutsScreen() {
     setError(null);
 
     const { data, error: fetchError } = await supabase
-      .from('payouts')
-      .select('id, amount, commission, hotel_share, status, created_at, hotels!inner(name, owner_id)')
+      .from('transactions')
+      .select('id, total_amount, commission_amount, hotel_payout_amount, vendor_payout_status, created_at, hotels!inner(name, owner_id)')
       .eq('hotels.owner_id', userId)
       .order('created_at', { ascending: false });
 
@@ -84,13 +84,14 @@ export default function VendorPayoutsScreen() {
         <View key={payout.id} style={styles.card}>
           <View style={styles.row}>
             <Text style={styles.id}>Payout {payout.id.slice(0, 8)}</Text>
-            <Text style={styles.status}>{payout.status}</Text>
+            <Text style={styles.status}>{payout.vendor_payout_status.replaceAll('_', ' ')}</Text>
           </View>
           <Text style={styles.property}>{payout.hotels?.name ?? 'Deleted property'}</Text>
-          <Text style={styles.amount}>{formatMoney(payout.hotel_share)}</Text>
+          <Text style={styles.amount}>{formatMoney(payout.hotel_payout_amount)}</Text>
           <Text style={styles.meta}>
-            Gross {formatMoney(payout.amount)} · Commission {formatMoney(payout.commission)}
+              Gross {formatMoney(payout.total_amount)} · Commission {formatMoney(payout.commission_amount)}
           </Text>
+          <Text style={styles.meta}>{payout.vendor_payout_status === 'eligible' ? 'Available after checkout; transfer is handled manually.' : payout.vendor_payout_status === 'paid' ? 'Transferred by the platform.' : 'Payout becomes eligible after checkout.'}</Text>
           <Text style={styles.meta}>{new Date(payout.created_at).toLocaleDateString()}</Text>
         </View>
       ))}

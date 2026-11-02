@@ -201,7 +201,6 @@ insert into public.hotels (
   check_out_time,
   images,
   rooms,
-  commission_rate,
   created_at,
   updated_at
 )
@@ -231,7 +230,6 @@ values
       'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267'
     ],
     '[{"type":"Deluxe King","price_per_night":250000,"total_rooms":12,"capacity_guests":2,"amenities":["wifi","breakfast"],"images":["https://images.unsplash.com/photo-1505693416388-ac5ce068fe85"]},{"type":"Family Suite","price_per_night":360000,"total_rooms":6,"capacity_guests":4,"amenities":["wifi","breakfast","pool"],"images":["https://images.unsplash.com/photo-1494526585095-c41746248156"]}]'::jsonb,
-    10.00,
     now(),
     now()
   ),
@@ -347,7 +345,6 @@ values
       'https://images.unsplash.com/photo-1445019980597-93fa8acb246c'
     ],
     '[{"type":"Economy Room","price_per_night":145000,"total_rooms":20,"capacity_guests":2,"amenities":["wifi","parking"],"images":["https://images.unsplash.com/photo-1520250497591-112f2f40a3f4"]},{"type":"Executive Room","price_per_night":220000,"total_rooms":10,"capacity_guests":3,"amenities":["wifi","breakfast"],"images":["https://images.unsplash.com/photo-1551882547-ff40c63fe5fa"]}]'::jsonb,
-    10.00,
     now(),
     now()
   ),
@@ -458,7 +455,6 @@ on conflict (id) do update set
   check_out_time = excluded.check_out_time,
   images = excluded.images,
   rooms = excluded.rooms,
-  commission_rate = excluded.commission_rate,
   updated_at = now();
 
 -- Create a few review rows to keep the seeded hotels realistic.

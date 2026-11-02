@@ -53,7 +53,6 @@ alter table public.hotels
   add column if not exists review_count integer not null default 0;
 
 alter table public.hotels add column if not exists payout_method jsonb;
-alter table public.hotels add column if not exists commission_rate numeric(5,2) not null default 0.00;
 
 create table public.bookings (
   id uuid primary key default gen_random_uuid(),

@@ -8,7 +8,22 @@ in numeric order. Run `supabase/seed.sql` after all migrations.
 These files are idempotent and safe to rerun as part of a fresh environment rebuild.
 Vendor accounts start as pending until an administrator approves or rejects them.
 Migrations `0022` and `0023` enable National ID/passport, hotel, and business
-document uploads, the FREE/PRO plan records, and earnings tracking.
+document uploads, FREE/PRO listing entitlements, and the original earnings
+ledger. Migrations `0025` and `0026` add Pay-at-Hotel booking controls,
+voucher/no-show tracking, and the replacement platform-wide commission system.
+Migration `0027` adds the vendor/admin wallet, mobile-money withdrawal methods,
+withdrawal requests, and admin review actions. A vendor's available balance
+includes paid bookings only after checkout; withdrawal requests stay reserved
+until rejected or paid.
+Migration `0028` repairs any nullable account-disabled flags and improves the
+withdrawal-method account checks with actionable errors.
+Migration `0029` fixes wallet role detection by avoiding PostgreSQL's
+`CURRENT_ROLE` keyword collision in the withdrawal RPCs.
+The default commission is 15%; admins can change percentage rates from 5% to
+30% or select a fixed SLE charge under Admin > Settings. Currency is SLE-only
+until USD checkout or an exchange-rate source is configured. New paid bookings
+write one commission/payout record to `transactions`; historical `payouts`
+rows are retained but are no longer duplicated for new bookings.
 Once approved, vendors can publish properties immediately; property listings do
 not wait for a separate approval.
 
@@ -47,6 +62,8 @@ select * from public.users;
 select * from public.hotels where approval_status = 'approved';
 select * from public.bookings;
 select * from public.payouts;
+select * from public.platform_settings;
+select * from public.transactions;
 ```
 
 ## 6. Environment variables
@@ -57,14 +74,16 @@ Use the app `.env` file to populate:
 EXPO_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon_key>
 EXPO_PUBLIC_GOOGLE_MAPS_EMBED_KEY=<optional>
-EXPO_PUBLIC_BACKEND_URL=http://localhost:3000
+EXPO_PUBLIC_BACKEND_URL=
 ```
 
 Keep the backend running with `npm run server` when using account or payment
-features. `localhost` works in a browser on the development computer; for a
-physical phone, set `EXPO_PUBLIC_BACKEND_URL` to the computer's LAN IP address
-(for example `http://192.168.1.10:3000`), allow port 3000 through its firewall,
-and restart Expo.
+features. During Expo LAN development, the app uses the current Expo host to
+reach the backend on port 3000, including from a physical phone. If the backend
+runs on another computer or you use a custom host, set
+`EXPO_PUBLIC_BACKEND_URL` to that server's reachable address (for example
+`http://192.168.1.10:3000`), allow port 3000 through its firewall, and restart
+Expo.
 
 Configure Monime credentials and the Supabase service-role key in `server/.env`
 only. Never put these secrets in the mobile app or a public Expo environment

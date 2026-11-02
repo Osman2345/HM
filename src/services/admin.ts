@@ -15,6 +15,11 @@ export interface AdminUser {
   business_document_url: string | null;
   vendor_terms_accepted_at: string | null;
   vendor_terms_version: string | null;
+  vendor_payment_policy_agreed: boolean;
+  vendor_payment_policy_agreed_at: string | null;
+  vendor_payment_policy_version: string | null;
+  no_show_count: number;
+  booking_risk_flagged_at: string | null;
   created_at: string;
   vendor_documents?: {
     id: string;
@@ -80,6 +85,9 @@ export interface AdminOverview {
   hotels: number;
   pendingHotels: number;
   bookings: number;
+  commissionEarned: number;
+  vendorPayouts: number;
+  suspiciousNoShows: number;
   activity: AdminActivity[];
 }
 
@@ -115,7 +123,7 @@ const countRows = async (
 };
 
 export const loadAdminOverview = async (): Promise<AdminOverview> => {
-  const [users, vendors, approvedVendors, pendingVendors, hotels, pendingHotels, bookings, notifications, recentBookings] =
+  const [users, vendors, approvedVendors, pendingVendors, hotels, pendingHotels, bookings, financialOverview, noShowEvents, notifications, recentBookings] =
     await Promise.all([
       countRows('users'),
       countRows('users', [['role', 'vendor']]),
@@ -124,6 +132,8 @@ export const loadAdminOverview = async (): Promise<AdminOverview> => {
       countRows('hotels'),
       countRows('hotels', [['approval_status', 'pending']]),
       countRows('bookings'),
+      supabase.rpc('admin_financial_overview'),
+      supabase.from('booking_no_show_events').select('id', { count: 'exact', head: true }).eq('suspicious', true),
       supabase
         .from('notifications')
         .select('id, title, message, created_at')
@@ -142,6 +152,11 @@ export const loadAdminOverview = async (): Promise<AdminOverview> => {
     message: string;
     created_at: string;
   }[];
+  const financialRows = throwIfError(financialOverview.data ?? [], financialOverview.error) as {
+    total_commission: number;
+    total_vendor_payouts: number;
+  }[];
+  if (noShowEvents.error) throw new Error(noShowEvents.error.message);
   const bookingRows = throwIfError(recentBookings.data ?? [], recentBookings.error) as {
     id: string;
     created_at: string;
@@ -169,7 +184,19 @@ export const loadAdminOverview = async (): Promise<AdminOverview> => {
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 8);
 
-  return { users, vendors, approvedVendors, pendingVendors, hotels, pendingHotels, bookings, activity };
+  return {
+    users,
+    vendors,
+    approvedVendors,
+    pendingVendors,
+    hotels,
+    pendingHotels,
+    bookings,
+    commissionEarned: Number(financialRows[0]?.total_commission ?? 0),
+    vendorPayouts: Number(financialRows[0]?.total_vendor_payouts ?? 0),
+    suspiciousNoShows: noShowEvents.count ?? 0,
+    activity,
+  };
 };
 
 export const loadAdminHotels = async (status: HotelApprovalStatus | 'all'): Promise<AdminHotel[]> => {
@@ -204,7 +231,7 @@ export const reviewAdminHotel = async (
 export const loadAdminVendors = async (): Promise<AdminUser[]> => {
   const { data, error } = await supabase
     .from('users')
-    .select('id, fullname, email, role, vendor_status, plan_id, pending_plan_id, disabled, business_name, business_description, business_document_url, vendor_terms_accepted_at, vendor_terms_version, created_at, vendor_documents(id, document_type, file_url, status, created_at)')
+    .select('id, fullname, email, role, vendor_status, plan_id, pending_plan_id, disabled, business_name, business_description, business_document_url, vendor_terms_accepted_at, vendor_terms_version, vendor_payment_policy_agreed, vendor_payment_policy_agreed_at, vendor_payment_policy_version, no_show_count, booking_risk_flagged_at, created_at, vendor_documents(id, document_type, file_url, status, created_at)')
     .eq('role', 'vendor')
     .order('created_at', { ascending: false });
   return throwIfError(data ?? [], error) as AdminUser[];
@@ -214,7 +241,7 @@ export const loadAdminUsers = async (search: string): Promise<AdminUser[]> => {
   const selectUsers = () =>
     supabase
       .from('users')
-      .select('id, fullname, email, role, vendor_status, plan_id, pending_plan_id, disabled, business_name, business_description, business_document_url, vendor_terms_accepted_at, vendor_terms_version, created_at, vendor_documents(id, document_type, file_url, status, created_at)')
+      .select('id, fullname, email, role, vendor_status, plan_id, pending_plan_id, disabled, business_name, business_description, business_document_url, vendor_terms_accepted_at, vendor_terms_version, vendor_payment_policy_agreed, vendor_payment_policy_agreed_at, vendor_payment_policy_version, no_show_count, booking_risk_flagged_at, created_at, vendor_documents(id, document_type, file_url, status, created_at)')
       .order('created_at', { ascending: false })
       .limit(100);
   const term = search.trim();
@@ -264,18 +291,18 @@ export const loadAdminBookings = async (status: BookingStatus | 'all'): Promise<
 export const loadAdminReport = async (periodDays: number): Promise<AdminReport> => {
   const periodEnd = new Date().toISOString();
   const since = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000).toISOString();
-  const [bookings, payouts, users] = await Promise.all([
+  const [bookings, transactions, users] = await Promise.all([
     supabase
       .from('bookings')
       .select('id, user_id, hotel_id, check_in, check_out, guests, rooms, total_price, payment_status, booking_status, created_at, users(fullname, email), hotels(name)')
       .gte('created_at', since)
       .order('created_at', { ascending: false }),
-    supabase.from('payouts').select('amount, commission, created_at').gte('created_at', since),
+    supabase.from('transactions').select('total_amount, commission_amount, created_at').gte('created_at', since),
     supabase.from('users').select('id', { count: 'exact', head: true }).gte('created_at', since),
   ]);
 
   const bookingRows = throwIfError(bookings.data ?? [], bookings.error) as AdminBooking[];
-  const payoutRows = throwIfError(payouts.data ?? [], payouts.error) as { amount: number; commission: number }[];
+  const transactionRows = throwIfError(transactions.data ?? [], transactions.error) as { total_amount: number; commission_amount: number }[];
   if (users.error) {
     throw new Error(users.error.message);
   }
@@ -294,8 +321,8 @@ export const loadAdminReport = async (periodDays: number): Promise<AdminReport> 
 
   return {
     bookings: bookingRows,
-    revenue: payoutRows.reduce((sum, payout) => sum + Number(payout.amount), 0),
-    commission: payoutRows.reduce((sum, payout) => sum + Number(payout.commission), 0),
+    revenue: transactionRows.reduce((sum, transaction) => sum + Number(transaction.total_amount), 0),
+    commission: transactionRows.reduce((sum, transaction) => sum + Number(transaction.commission_amount), 0),
     newUsers: users.count ?? 0,
     topHotels: [...hotels.values()].sort((a, b) => b.bookings - a.bookings).slice(0, 5),
     periodEnd,

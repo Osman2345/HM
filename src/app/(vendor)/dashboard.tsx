@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Linking,
   RefreshControl,
@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
-import { createBackendVendorUpgrade } from '@/lib/backend';
+import { createBackendVendorUpgrade, loadPlatformSettings, type PlatformSettings } from '@/lib/backend';
+import WalletControls from '@/components/finance/WalletControls';
 
 type VendorHotel = {
   id: string;
@@ -34,6 +35,7 @@ type VendorTransaction = {
   total_amount: number;
   commission_amount: number;
   hotel_payout_amount: number;
+  vendor_payout_status: string;
   created_at: string;
 };
 
@@ -63,12 +65,21 @@ export default function VendorDashboardScreen() {
   const [pendingBookingCount, setPendingBookingCount] = useState(0);
   const [planId, setPlanId] = useState<'free' | 'pro'>('free');
   const [pendingPlanId, setPendingPlanId] = useState<'free' | 'pro'>('free');
+  const [platformSettings, setPlatformSettings] = useState<PlatformSettings | null>(null);
   const [transactions, setTransactions] = useState<VendorTransaction[]>([]);
   const [upgradeBusy, setUpgradeBusy] = useState(false);
   const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void loadPlatformSettings()
+      .then((settings) => { if (active) setPlatformSettings(settings); })
+      .catch(() => { if (active) setPlatformSettings(null); });
+    return () => { active = false; };
+  }, []);
 
   const refresh = useCallback(async (pull = false) => {
     if (!userId) {
@@ -95,7 +106,7 @@ export default function VendorDashboardScreen() {
           .single(),
         supabase
           .from('transactions')
-          .select('id, booking_id, total_amount, commission_amount, hotel_payout_amount, created_at')
+          .select('id, booking_id, total_amount, commission_amount, hotel_payout_amount, vendor_payout_status, created_at')
           .eq('vendor_id', userId)
           .order('created_at', { ascending: false })
           .limit(20),
@@ -207,6 +218,8 @@ export default function VendorDashboardScreen() {
         </View>
       </View>
 
+      <WalletControls />
+
       {loading ? <Text style={styles.state}>Loading your business overview…</Text> : null}
       {error ? (
         <View style={styles.errorCard}>
@@ -252,10 +265,15 @@ export default function VendorDashboardScreen() {
                 <Text style={styles.panelTitle}>Vendor plan</Text>
                 <Text style={styles.panelSubtitle}>
                   {planId === 'pro'
-                    ? 'PRO · 5% commission · Up to 5 hotels'
+                    ? 'PRO · Up to 5 hotels'
                     : pendingPlanId === 'pro'
                       ? 'PRO selected · Pay Le 100 once to activate your plan and list properties'
-                      : 'FREE · 10% commission · 1 hotel'}
+                      : 'FREE · 1 hotel'}
+                </Text>
+                <Text style={styles.panelSubtitle}>
+                  {platformSettings
+                    ? `Platform booking commission: ${platformSettings.commission_type === 'percentage' ? `${platformSettings.commission_value}%` : `Le ${Number(platformSettings.commission_value).toLocaleString()} per paid booking`}`
+                    : 'Booking commission is set by the platform administrator.'}
                 </Text>
               </View>
               <View style={styles.planBadge}><Text style={styles.planBadgeText}>{planId.toUpperCase()}</Text></View>
@@ -388,6 +406,7 @@ export default function VendorDashboardScreen() {
                   <Text style={styles.earningsColumn}>Total</Text>
                   <Text style={styles.earningsColumn}>Commission</Text>
                   <Text style={styles.earningsColumn}>Your payout</Text>
+                  <Text style={styles.earningsColumn}>Payout status</Text>
                 </View>
                 {transactions.length === 0 ? (
                   <Text style={styles.emptyEarnings}>No paid booking earnings recorded yet.</Text>
@@ -399,6 +418,7 @@ export default function VendorDashboardScreen() {
                     <Text style={styles.earningsValue}>{formatMoney(transaction.total_amount)}</Text>
                     <Text style={styles.earningsValue}>{formatMoney(transaction.commission_amount)}</Text>
                     <Text style={styles.earningsPayout}>{formatMoney(transaction.hotel_payout_amount)}</Text>
+                    <Text style={styles.earningsValue}>{transaction.vendor_payout_status.replaceAll('_', ' ')}</Text>
                   </View>
                 ))}
               </View>

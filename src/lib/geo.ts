@@ -1,9 +1,16 @@
-export const defaultRegion = {
+export type Region = {
+  latitude: number;
+  longitude: number;
+  latitudeDelta: number;
+  longitudeDelta: number;
+};
+
+export const defaultRegion: Region = {
   latitude: 8.48,
   longitude: -13.23,
   latitudeDelta: 0.12,
   longitudeDelta: 0.12,
-} as const;
+};
 
 export const getDistanceKm = (latA: number, lonA: number, latB: number, lonB: number): number => {
   const earthRadiusKm = 6371;

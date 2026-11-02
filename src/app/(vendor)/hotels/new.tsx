@@ -62,6 +62,8 @@ interface UploadedImages {
   paths: string[];
 }
 
+const MAX_LISTING_PHOTOS = 20;
+
 const uploadListingImages = async (
   userId: string,
   assets: ImagePicker.ImagePickerAsset[],
@@ -222,8 +224,8 @@ export default function VendorHotelEditorScreen() {
   const choosePhotos = async () => {
     setError(null);
     try {
-      if (photos.length >= 10) {
-        setError('A property can have up to 10 photos.');
+      if (photos.length >= MAX_LISTING_PHOTOS) {
+        setError(`A property can have up to ${MAX_LISTING_PHOTOS} photos.`);
         return;
       }
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -235,11 +237,11 @@ export default function VendorHotelEditorScreen() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsMultipleSelection: true,
-        selectionLimit: 10 - photos.length,
+        selectionLimit: MAX_LISTING_PHOTOS - photos.length,
         quality: 0.82,
       });
       if (!result.canceled) {
-        setNewPhotos((current) => [...current, ...result.assets].slice(0, 10 - photoUrls.length));
+        setNewPhotos((current) => [...current, ...result.assets].slice(0, MAX_LISTING_PHOTOS - photoUrls.length));
         if (!coverImage && result.assets[0]) {
           setCoverImage(result.assets[0].uri);
         }
@@ -269,9 +271,9 @@ export default function VendorHotelEditorScreen() {
     const room = rooms.find((item) => item.formId === formId);
     if (!room) return;
 
-    const remaining = 10 - room.images.length - room.newImages.length;
+    const remaining = MAX_LISTING_PHOTOS - room.images.length - room.newImages.length;
     if (remaining <= 0) {
-      setError('A room type can have up to 10 photos.');
+      setError(`A room type can have up to ${MAX_LISTING_PHOTOS} photos.`);
       return;
     }
 
@@ -561,7 +563,7 @@ export default function VendorHotelEditorScreen() {
               />
             </FormSection>
 
-            <FormSection icon="images-outline" title="Property photos" subtitle="Add up to 10 photos and choose the cover guests see first">
+            <FormSection icon="images-outline" title="Property photos" subtitle={`Add up to ${MAX_LISTING_PHOTOS} photos and choose the cover guests see first`}>
               <TouchableOpacity
                 accessibilityRole="button"
                 style={styles.photoPicker}
@@ -571,7 +573,7 @@ export default function VendorHotelEditorScreen() {
                 <View style={styles.photoPickerIcon}><Ionicons name="cloud-upload-outline" size={21} color="#087E8B" /></View>
                 <View style={styles.photoPickerCopy}>
                   <Text style={styles.photoPickerTitle}>Choose property photos</Text>
-                  <Text style={styles.photoPickerHint}>JPEG, PNG, WebP, or HEIC · 10 MB max per photo</Text>
+                      <Text style={styles.photoPickerHint}>Up to {MAX_LISTING_PHOTOS} photos · JPEG, PNG, WebP, or HEIC · 10 MB max each</Text>
                 </View>
                 <Ionicons name="add-circle-outline" size={22} color="#087E8B" />
               </TouchableOpacity>
@@ -667,7 +669,7 @@ export default function VendorHotelEditorScreen() {
                     <View style={styles.photoPickerIcon}><Ionicons name="cloud-upload-outline" size={21} color="#087E8B" /></View>
                     <View style={styles.photoPickerCopy}>
                       <Text style={styles.photoPickerTitle}>Choose room photos</Text>
-                      <Text style={styles.photoPickerHint}>Up to 10 photos · JPEG, PNG, WebP, or HEIC</Text>
+                      <Text style={styles.photoPickerHint}>Up to {MAX_LISTING_PHOTOS} photos · JPEG, PNG, WebP, or HEIC</Text>
                     </View>
                     <Ionicons name="add-circle-outline" size={22} color="#087E8B" />
                   </TouchableOpacity>
@@ -731,7 +733,7 @@ export default function VendorHotelEditorScreen() {
               <TouchableOpacity
                 accessibilityRole="button"
                 style={styles.cancelButton}
-                onPress={() => router.back()}
+                onPress={() => (router.canGoBack() ? router.back() : router.replace('/(vendor)/hotels'))}
                 disabled={busy}
               >
                 <Text style={styles.cancelText}>Cancel</Text>

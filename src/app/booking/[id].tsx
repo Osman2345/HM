@@ -13,6 +13,9 @@ type BookingRow = {
   hotel_id: string | null;
   booking_status: string | null;
   payment_status: string | null;
+  payment_method: 'monime' | 'pay_at_hotel';
+  voucher_code: string | null;
+  checked_out_at: string | null;
   total_price: number | null;
   room_type: string | null;
   check_in: string | null;
@@ -68,7 +71,7 @@ export default function BookingDetailsScreen() {
     try {
       const { data, error: fetchError } = await supabase
         .from('bookings')
-        .select('id, hotel_id, booking_status, payment_status, total_price, room_type, check_in, check_out, guests, rooms, created_at')
+        .select('id, hotel_id, booking_status, payment_status, payment_method, voucher_code, checked_out_at, total_price, room_type, check_in, check_out, guests, rooms, created_at')
         .eq('id', bookingId)
         .maybeSingle();
       if (fetchError) throw fetchError;
@@ -131,14 +134,16 @@ export default function BookingDetailsScreen() {
   const paymentComplete = ['paid', 'success'].includes(paymentLabel.toLowerCase());
   const paymentFailed = ['failed', 'refunded'].includes(paymentLabel.toLowerCase());
   const bookingCancelled = booking?.booking_status?.toLowerCase() === 'cancelled';
+  const noShow = booking?.booking_status?.toLowerCase() === 'no_show';
+  const bookingConfirmed = !noShow && (paymentComplete || booking?.booking_status?.toLowerCase() === 'confirmed');
   const createdAt = booking ? new Date(booking.created_at).getTime() : Number.NaN;
   const holdExpiresAt = createdAt + HOLD_DURATION_MS;
-  const holdExpired = !Number.isFinite(createdAt) || now >= holdExpiresAt;
+  const holdExpired = booking?.payment_method !== 'pay_at_hotel' && (!Number.isFinite(createdAt) || now >= holdExpiresAt);
   const holdRemaining = Math.max(0, holdExpiresAt - now);
   const holdMinutes = Math.floor(holdRemaining / 60000);
   const holdSeconds = Math.floor((holdRemaining % 60000) / 1000);
   const nights = getNights(booking?.check_in ?? null, booking?.check_out ?? null);
-  const canPay = !paymentComplete && !paymentFailed && !bookingCancelled && !holdExpired && !verifyingPayment;
+  const canPay = booking?.payment_method === 'monime' && !paymentComplete && !paymentFailed && !bookingCancelled && !noShow && !holdExpired && !verifyingPayment;
 
   const startPayment = async () => {
     if (!booking || !canPay) return;
@@ -166,7 +171,7 @@ export default function BookingDetailsScreen() {
     return <View style={[styles.centerScreen, { paddingTop: insets.top }]}><Ionicons name="alert-circle-outline" size={32} color="#B42318" /><Text style={styles.centerText}>{error}</Text><TouchableOpacity style={styles.secondaryButton} onPress={() => void loadBooking()}><Text style={styles.secondaryButtonText}>Try again</Text></TouchableOpacity></View>;
   }
   if (!booking) {
-    return <View style={[styles.centerScreen, { paddingTop: insets.top }]}><Text style={styles.centerText}>Booking not found.</Text><TouchableOpacity style={styles.secondaryButton} onPress={() => router.back()}><Text style={styles.secondaryButtonText}>Go back</Text></TouchableOpacity></View>;
+    return <View style={[styles.centerScreen, { paddingTop: insets.top }]}><Text style={styles.centerText}>Booking not found.</Text><TouchableOpacity style={styles.secondaryButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/bookings'))}><Text style={styles.secondaryButtonText}>Go back</Text></TouchableOpacity></View>;
   }
 
   return (
@@ -174,24 +179,24 @@ export default function BookingDetailsScreen() {
       style={styles.screen}
       contentContainerStyle={[styles.container, { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 28 }]}
     >
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityRole="button">
+      <TouchableOpacity style={styles.backButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/bookings'))} accessibilityRole="button">
         <Ionicons name="arrow-back" size={20} color="#0F172A" /><Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
 
-      <View style={[styles.statusHero, paymentComplete && styles.statusHeroPaid, (paymentFailed || bookingCancelled) && styles.statusHeroFailed]}>
-        <View style={[styles.statusIcon, paymentComplete && styles.statusIconPaid, (paymentFailed || bookingCancelled) && styles.statusIconFailed]}>
+      <View style={[styles.statusHero, (paymentComplete || bookingConfirmed) && styles.statusHeroPaid, (paymentFailed || bookingCancelled || noShow) && styles.statusHeroFailed]}>
+        <View style={[styles.statusIcon, (paymentComplete || bookingConfirmed) && styles.statusIconPaid, (paymentFailed || bookingCancelled || noShow) && styles.statusIconFailed]}>
           <Ionicons
-            name={paymentComplete ? 'checkmark' : (paymentFailed || bookingCancelled) ? 'close' : 'card-outline'}
+            name={(paymentComplete || bookingConfirmed) && !noShow ? 'checkmark' : (paymentFailed || bookingCancelled || noShow) ? 'close' : 'card-outline'}
             size={25}
-            color={paymentComplete ? '#027A48' : (paymentFailed || bookingCancelled) ? '#B42318' : '#087E8B'}
+            color={(paymentComplete || bookingConfirmed) && !noShow ? '#027A48' : (paymentFailed || bookingCancelled || noShow) ? '#B42318' : '#087E8B'}
           />
         </View>
-        <Text style={styles.eyebrow}>{paymentComplete ? 'YOU’RE ALL SET' : bookingCancelled ? 'BOOKING CANCELLED' : paymentFailed ? 'PAYMENT NOT COMPLETED' : 'ALMOST THERE'}</Text>
-        <Text style={styles.heading}>{paymentComplete ? 'Booking confirmed' : bookingCancelled ? 'This booking is cancelled' : paymentFailed ? 'Payment failed' : 'Complete your booking'}</Text>
+        <Text style={styles.eyebrow}>{noShow ? 'NO-SHOW RECORDED' : paymentComplete ? 'YOU’RE ALL SET' : bookingConfirmed ? 'RESERVATION CONFIRMED' : bookingCancelled ? 'BOOKING CANCELLED' : paymentFailed ? 'PAYMENT NOT COMPLETED' : 'ALMOST THERE'}</Text>
+        <Text style={styles.heading}>{noShow ? 'This booking was marked no-show' : paymentComplete ? 'Booking confirmed' : bookingConfirmed ? 'Reservation confirmed' : bookingCancelled ? 'This booking is cancelled' : paymentFailed ? 'Payment failed' : 'Complete your booking'}</Text>
         <Text style={styles.subtitle}>{hotelName || `Booking #${booking.id.slice(0, 8).toUpperCase()}`}</Text>
       </View>
 
-      {!paymentComplete && !paymentFailed && !bookingCancelled ? (
+      {booking.payment_method === 'monime' && !paymentComplete && !paymentFailed && !bookingCancelled ? (
         <View style={[styles.holdBanner, holdExpired && styles.holdExpiredBanner]}>
           <Ionicons name={holdExpired ? 'time-outline' : 'hourglass-outline'} size={19} color={holdExpired ? '#B42318' : '#9A6700'} />
           <View style={styles.holdTextGroup}>
@@ -208,10 +213,10 @@ export default function BookingDetailsScreen() {
       <View style={styles.card}>
         <View style={styles.cardHeadingRow}>
           <View><Text style={styles.cardEyebrow}>STAY DETAILS</Text><Text style={styles.cardTitle}>Your reservation</Text></View>
-          <View style={[styles.statusPill, paymentComplete && styles.paidPill, (paymentFailed || bookingCancelled) && styles.failedPill]}>
-            <View style={[styles.statusDot, paymentComplete && styles.paidDot, (paymentFailed || bookingCancelled) && styles.failedDot]} />
-            <Text style={[styles.statusPillText, paymentComplete && styles.paidText, (paymentFailed || bookingCancelled) && styles.failedText]}>
-              {paymentComplete ? 'Paid' : bookingCancelled ? 'Cancelled' : paymentFailed ? 'Failed' : 'Pending'}
+          <View style={[styles.statusPill, (paymentComplete || bookingConfirmed) && styles.paidPill, (paymentFailed || bookingCancelled || noShow) && styles.failedPill]}>
+            <View style={[styles.statusDot, (paymentComplete || bookingConfirmed) && styles.paidDot, (paymentFailed || bookingCancelled || noShow) && styles.failedDot]} />
+            <Text style={[styles.statusPillText, (paymentComplete || bookingConfirmed) && styles.paidText, (paymentFailed || bookingCancelled || noShow) && styles.failedText]}>
+              {noShow ? 'No-show' : paymentComplete ? 'Paid' : bookingConfirmed ? 'Confirmed' : bookingCancelled ? 'Cancelled' : paymentFailed ? 'Failed' : 'Pending'}
             </Text>
           </View>
         </View>
@@ -240,16 +245,30 @@ export default function BookingDetailsScreen() {
       <View style={styles.paymentCard}>
         <View style={styles.paymentHeading}>
           <View style={styles.paymentHeadingIcon}><Ionicons name="shield-checkmark-outline" size={19} color="#087E8B" /></View>
-          <View><Text style={styles.paymentTitle}>Secure payment</Text><Text style={styles.paymentSubtitle}>Protected checkout powered by Monime</Text></View>
+          <View>
+            <Text style={styles.paymentTitle}>{booking.payment_method === 'pay_at_hotel' ? 'Pay at the hotel' : 'Secure payment'}</Text>
+            <Text style={styles.paymentSubtitle}>{booking.payment_method === 'pay_at_hotel' ? 'Payment is recorded by the hotel at checkout.' : 'Protected checkout powered by Monime'}</Text>
+          </View>
         </View>
         <View style={styles.paymentDivider} />
         <View style={styles.paymentStateRow}>
           <Text style={styles.paymentStateLabel}>Payment status</Text>
-          <Text style={[styles.paymentStateValue, paymentComplete && styles.paidText, paymentFailed && styles.failedText]}>{paymentComplete ? 'Paid' : paymentFailed ? 'Failed' : paymentStatus === 'pending' ? 'Awaiting payment' : 'Not paid yet'}</Text>
+          <Text style={[styles.paymentStateValue, paymentComplete && styles.paidText, paymentFailed && styles.failedText]}>{paymentComplete ? 'Paid' : paymentFailed ? 'Failed' : booking.payment_method === 'pay_at_hotel' ? 'Due at checkout' : paymentStatus === 'pending' ? 'Awaiting payment' : 'Not paid yet'}</Text>
         </View>
       </View>
 
-      {paymentComplete ? (
+      {booking.voucher_code ? (
+        <View style={styles.voucherCard}>
+          <View style={styles.voucherIcon}><Ionicons name="ticket-outline" size={20} color="#087E8B" /></View>
+          <View style={styles.voucherCopy}>
+            <Text style={styles.voucherLabel}>BOOKING VOUCHER</Text>
+            <Text selectable style={styles.voucherCode}>{booking.voucher_code}</Text>
+            <Text style={styles.voucherHint}>Show this code to the property when you arrive.</Text>
+          </View>
+        </View>
+      ) : null}
+
+      {paymentComplete || bookingConfirmed ? (
         <TouchableOpacity style={styles.primaryButton} onPress={() => router.replace('/(tabs)/bookings')}>
           <Ionicons name="receipt-outline" size={19} color="#FFFFFF" /><Text style={styles.primaryButtonText}>View my bookings</Text>
         </TouchableOpacity>
@@ -275,7 +294,7 @@ export default function BookingDetailsScreen() {
       {paymentVerifyError ? <View style={styles.errorNotice}><Ionicons name="warning-outline" size={18} color="#B42318" /><Text style={styles.errorNoticeText}>Payment status could not be verified: {paymentVerifyError}</Text></View> : null}
       {error ? <View style={styles.errorNotice}><Ionicons name="warning-outline" size={18} color="#B42318" /><Text style={styles.errorNoticeText}>{error}</Text></View> : null}
       {verifyingPayment ? <View style={styles.verifying}><ActivityIndicator color="#087E8B" /><Text style={styles.verifyingText}>Verifying your payment securely…</Text></View> : null}
-      <Text style={styles.footerNote}>Your room is only confirmed once payment is complete.</Text>
+      <Text style={styles.footerNote}>{booking.payment_method === 'pay_at_hotel' ? 'Your voucher is issued once the hotel confirms the reservation.' : 'Your room is only confirmed once payment is complete.'}</Text>
     </ScrollView>
   );
 }
@@ -334,6 +353,12 @@ const styles = StyleSheet.create({
   paymentStateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   paymentStateLabel: { color: '#64748B', fontSize: 11 },
   paymentStateValue: { color: '#B54708', fontSize: 11, fontWeight: '800' },
+  voucherCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 15, borderWidth: 1, borderColor: '#B9DCDD', borderRadius: 14, backgroundColor: '#F2FAFA' },
+  voucherIcon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: '#D9F0F0' },
+  voucherCopy: { flex: 1 },
+  voucherLabel: { color: '#087E8B', fontSize: 9, fontWeight: '900', letterSpacing: 0.6 },
+  voucherCode: { marginTop: 4, color: '#17354B', fontSize: 19, fontWeight: '900', letterSpacing: 0.5 },
+  voucherHint: { marginTop: 3, color: '#526974', fontSize: 10 },
   primaryButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, backgroundColor: '#087E8B', borderRadius: 15, paddingVertical: 16, shadowColor: '#087E8B', shadowOpacity: 0.16, shadowRadius: 9, shadowOffset: { width: 0, height: 5 }, elevation: 3 },
   buttonBusy: { opacity: 0.75 },
   primaryButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },

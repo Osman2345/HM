@@ -4,7 +4,7 @@ import { loadAdminBookings, type AdminBooking } from '@/services/admin';
 import type { BookingStatus } from '@/types/database';
 
 type BookingFilter = BookingStatus | 'all';
-const filters: BookingFilter[] = ['pending', 'confirmed', 'completed', 'cancelled', 'all'];
+const filters: BookingFilter[] = ['pending', 'confirmed', 'checked_out', 'no_show', 'completed', 'cancelled', 'all'];
 
 const formatMoney = (amount: number) =>
   new Intl.NumberFormat('en-SL', { style: 'currency', currency: 'SLL', maximumFractionDigits: 0 }).format(Number(amount) || 0);

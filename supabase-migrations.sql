@@ -97,7 +97,6 @@ CREATE INDEX IF NOT EXISTS hotels_approval_status_idx ON public.hotels(approval_
 
 -- Add payout fields and payouts table
 ALTER TABLE public.hotels ADD COLUMN IF NOT EXISTS payout_method jsonb;
-ALTER TABLE public.hotels ADD COLUMN IF NOT EXISTS commission_rate numeric(5,2) NOT NULL DEFAULT 0.00;
 
 CREATE TABLE IF NOT EXISTS public.payouts (
   id uuid primary key default gen_random_uuid(),

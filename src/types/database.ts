@@ -1,6 +1,6 @@
 export type UserRole = 'user' | 'vendor' | 'admin';
 export type VendorStatus = 'pending' | 'approved' | 'rejected';
-export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed';
+export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'checked_out' | 'no_show';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
 export type HotelApprovalStatus = 'pending' | 'approved' | 'rejected';
 
@@ -37,7 +37,6 @@ export interface HotelRow {
   check_out_time: string | null;
   images: string[];
   rooms: HotelRoom[];
-  commission_rate: number;
   vendor_terms_accepted_at: string | null;
   vendor_terms_version: string | null;
   created_at: string;
@@ -56,6 +55,9 @@ export interface BookingRow {
   total_price: number;
   payment_status: PaymentStatus;
   booking_status: BookingStatus;
+  payment_method: 'monime' | 'pay_at_hotel';
+  voucher_code: string | null;
+  checked_out_at: string | null;
   vendor_terms_accepted_at: string | null;
   vendor_terms_version: string | null;
   created_at: string;
@@ -121,7 +123,6 @@ export interface VendorPlanRow {
   id: 'free' | 'pro';
   name: 'FREE' | 'PRO';
   price: number;
-  commission_percent: number;
   max_hotels: number;
   features: string[];
 }
@@ -135,7 +136,68 @@ export interface TransactionRow {
   commission_amount: number;
   hotel_payout_amount: number;
   status: string;
+  commission_type: 'percentage' | 'fixed_amount';
+  commission_value: number;
+  currency: 'SLE';
+  vendor_payout_status: 'pending' | 'eligible' | 'paid';
+  vendor_paid_at: string | null;
   created_at: string;
+}
+
+export interface PlatformSettingsRow {
+  id: number;
+  commission_type: 'percentage' | 'fixed_amount';
+  commission_value: number;
+  currency: 'SLE';
+  updated_by: string | null;
+  updated_at: string;
+}
+
+export interface BookingNoShowEventRow {
+  id: string;
+  booking_id: string;
+  guest_id: string;
+  vendor_id: string;
+  no_show_count: number;
+  suspicious: boolean;
+  marked_at: string;
+}
+
+export type WithdrawalProvider = 'orange_money' | 'afri_money';
+export type WithdrawalStatus = 'pending' | 'approved' | 'paid' | 'rejected';
+
+export interface WithdrawalMethodRow {
+  owner_id: string;
+  provider: WithdrawalProvider;
+  phone_number: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WithdrawalRequestRow {
+  id: string;
+  requester_id: string;
+  requester_role: 'admin' | 'vendor';
+  amount: number;
+  currency: 'SLE';
+  provider: WithdrawalProvider;
+  phone_number: string;
+  status: WithdrawalStatus;
+  admin_note: string | null;
+  reviewed_by: string | null;
+  requested_at: string;
+  reviewed_at: string | null;
+  paid_at: string | null;
+  updated_at: string;
+}
+
+export interface WalletSummaryRow {
+  earned_balance: number;
+  available_balance: number;
+  reserved_withdrawals: number;
+  withdrawn_total: number;
+  provider: WithdrawalProvider | null;
+  phone_number: string | null;
 }
 
 export interface WebhookLogRow {
@@ -178,6 +240,11 @@ export interface Database {
           business_document_url: string | null;
           vendor_terms_accepted_at: string | null;
           vendor_terms_version: string | null;
+          vendor_payment_policy_agreed: boolean;
+          vendor_payment_policy_agreed_at: string | null;
+          vendor_payment_policy_version: string | null;
+          no_show_count: number;
+          booking_risk_flagged_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -200,6 +267,9 @@ export interface Database {
           business_document_url: string | null;
           vendor_terms_accepted_at: string | null;
           vendor_terms_version: string | null;
+          vendor_payment_policy_agreed: boolean;
+          vendor_payment_policy_agreed_at: string | null;
+          vendor_payment_policy_version: string | null;
         }>;
         Update: Partial<{
           fullname: string | null;
@@ -218,6 +288,9 @@ export interface Database {
           business_document_url: string | null;
           vendor_terms_accepted_at: string | null;
           vendor_terms_version: string | null;
+          vendor_payment_policy_agreed: boolean;
+          vendor_payment_policy_agreed_at: string | null;
+          vendor_payment_policy_version: string | null;
         }>;
       };
       hotels: {
@@ -318,6 +391,26 @@ export interface Database {
         Insert: Partial<TransactionRow>;
         Update: Partial<TransactionRow>;
       };
+      platform_settings: {
+        Row: PlatformSettingsRow;
+        Insert: Partial<PlatformSettingsRow>;
+        Update: Partial<PlatformSettingsRow>;
+      };
+      booking_no_show_events: {
+        Row: BookingNoShowEventRow;
+        Insert: Partial<BookingNoShowEventRow>;
+        Update: Partial<BookingNoShowEventRow>;
+      };
+      withdrawal_methods: {
+        Row: WithdrawalMethodRow;
+        Insert: Partial<WithdrawalMethodRow>;
+        Update: Partial<WithdrawalMethodRow>;
+      };
+      withdrawal_requests: {
+        Row: WithdrawalRequestRow;
+        Insert: Partial<WithdrawalRequestRow>;
+        Update: Partial<WithdrawalRequestRow>;
+      };
       webhook_logs: {
         Row: WebhookLogRow;
         Insert: Partial<WebhookLogRow>;
@@ -366,6 +459,7 @@ export interface Database {
           p_check_out: string;
           p_guests: number;
           p_rooms: number;
+          p_payment_method?: 'monime' | 'pay_at_hotel';
         };
         Returns: BookingRow;
       };
@@ -375,6 +469,38 @@ export interface Database {
           p_status: BookingStatus;
         };
         Returns: BookingRow;
+      };
+      vendor_update_booking_status: {
+        Args: { p_booking_id: string; p_status: string };
+        Returns: BookingRow;
+      };
+      get_vendor_booking_contact: {
+        Args: { p_booking_id: string };
+        Returns: { guest_name: string; guest_phone: string | null }[];
+      };
+      admin_financial_overview: {
+        Args: Record<string, never>;
+        Returns: { total_commission: number; total_vendor_payouts: number }[];
+      };
+      admin_update_vendor_payout: {
+        Args: { p_transaction_id: string; p_status: 'eligible' | 'paid' };
+        Returns: TransactionRow;
+      };
+      save_withdrawal_method: {
+        Args: { p_provider: WithdrawalProvider; p_phone_number: string };
+        Returns: WithdrawalMethodRow;
+      };
+      get_my_wallet_summary: {
+        Args: Record<string, never>;
+        Returns: WalletSummaryRow[];
+      };
+      request_withdrawal: {
+        Args: { p_amount: number };
+        Returns: WithdrawalRequestRow;
+      };
+      admin_review_withdrawal: {
+        Args: { p_request_id: string; p_status: 'approved' | 'paid' | 'rejected'; p_admin_note?: string | null };
+        Returns: WithdrawalRequestRow;
       };
       cancel_guest_booking: {
         Args: {

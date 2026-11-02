@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Slot, usePathname, useRouter, type Href } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -15,6 +15,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useAuthStore } from '@/store/auth.store';
+import { supabase } from '@/lib/supabase';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -38,6 +39,8 @@ const adminItems = [
   { label: 'Vendors', href: '/(admin)/vendors', icon: 'briefcase-outline' },
   { label: 'Users', href: '/(admin)/users', icon: 'people-outline' },
   { label: 'Payouts', href: '/(admin)/payouts', icon: 'wallet-outline' },
+  { label: 'Withdrawals', href: '/(admin)/withdrawals', icon: 'cash-outline' },
+  { label: 'Settings', href: '/(admin)/settings', icon: 'settings-outline' },
   { label: 'Reports', href: '/(admin)/reports', icon: 'bar-chart-outline' },
 ] as const satisfies readonly NavigationItem[];
 
@@ -46,6 +49,7 @@ const vendorItems = [
   { label: 'Rooms', href: '/(vendor)/hotels', icon: 'business-outline' },
   { label: 'Bookings', href: '/(vendor)/bookings', icon: 'calendar-outline' },
   { label: 'Earnings', href: '/(vendor)/payouts', icon: 'wallet-outline' },
+  { label: 'Withdrawals', href: '/(vendor)/withdrawals', icon: 'cash-outline' },
   { label: 'Settings', href: '/(vendor)/profile', icon: 'person-outline' },
 ] as const satisfies readonly NavigationItem[];
 
@@ -78,10 +82,41 @@ function RoleSidebarLayout({ brand, description, items, showSignOut = false }: R
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const signOut = useAuthStore((state) => state.signOut);
+  const userId = useAuthStore((state) => state.session?.user.id ?? null);
+  const role = useAuthStore((state) => state.role);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const wideLayout = width >= 769;
   const showSignOutLabel = width >= 520;
   const activeItem = items.find((item) => pathname.endsWith(item.href.toString().split('/').pop() ?? ''));
   const pageTitle = activeItem?.label ?? 'Dashboard';
+  const showWallet = description === 'ADMINISTRATION' || description === 'PARTNER PORTAL';
+
+  useEffect(() => {
+    let active = true;
+    const timeout = setTimeout(() => {
+      if (!userId || !showWallet) {
+        setWalletBalance(null);
+        return;
+      }
+      void (async () => {
+        try {
+          const { data, error } = await supabase.rpc('get_my_wallet_summary');
+          if (!active) return;
+          if (error) {
+            setWalletBalance(null);
+          } else {
+            setWalletBalance(Number(data?.[0]?.available_balance ?? 0));
+          }
+        } catch {
+          if (active) setWalletBalance(null);
+        }
+      })();
+    }, 0);
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
+  }, [description, pathname, showWallet, userId]);
 
   const handleSignOut = async () => {
     setSignOutError(null);
@@ -130,6 +165,20 @@ function RoleSidebarLayout({ brand, description, items, showSignOut = false }: R
               <Text style={styles.topbarTitle}>{pageTitle}</Text>
               <Text style={styles.topbarSubtitle}>{description}</Text>
             </View>
+            {showWallet && userId ? (
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={`Available balance ${walletBalance === null ? 'loading' : `Le ${walletBalance.toLocaleString()}`}`}
+                style={styles.walletBadge}
+                onPress={() => router.push(role === 'admin' ? '/(admin)/payouts' : '/(vendor)/payouts')}
+              >
+                <Ionicons name="wallet-outline" size={16} color="#087E8B" />
+                <View>
+                  <Text style={styles.walletBadgeLabel}>BALANCE</Text>
+                  <Text style={styles.walletBadgeAmount}>{walletBalance === null ? '—' : `Le ${walletBalance.toLocaleString()}`}</Text>
+                </View>
+              </TouchableOpacity>
+            ) : null}
             {showSignOut ? (
               <TouchableOpacity
                 style={[styles.signOutButton, signingOut && styles.signOutButtonDisabled]}
@@ -389,6 +438,28 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 1.1,
     marginTop: 3,
+  },
+  walletBadge: {
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: '#B9DCDD',
+    borderRadius: 7,
+    backgroundColor: '#F2FAFA',
+  },
+  walletBadgeLabel: {
+    color: '#718397',
+    fontSize: 8,
+    fontWeight: '800',
+  },
+  walletBadgeAmount: {
+    marginTop: 2,
+    color: '#087E8B',
+    fontSize: 11,
+    fontWeight: '900',
   },
   portalBadge: {
     flexDirection: 'row',

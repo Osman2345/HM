@@ -7,10 +7,10 @@ interface AdminPayout {
   id: string;
   hotel_id: string | null;
   booking_id: string | null;
-  amount: number;
-  commission: number;
-  hotel_share: number;
-  status: string;
+  total_amount: number;
+  commission_amount: number;
+  hotel_payout_amount: number;
+  vendor_payout_status: 'pending' | 'eligible' | 'paid';
   created_at: string;
   hotels: { name: string } | null;
 }
@@ -27,6 +27,7 @@ export default function AdminPayoutsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const loadPayouts = useCallback(async (pull = false) => {
     if (pull) setRefreshing(true);
@@ -34,8 +35,8 @@ export default function AdminPayoutsScreen() {
     setError(null);
 
     const { data, error: fetchError } = await supabase
-      .from('payouts')
-      .select('id, hotel_id, booking_id, amount, commission, hotel_share, status, created_at, hotels(name)')
+      .from('transactions')
+      .select('id, hotel_id, booking_id, total_amount, commission_amount, hotel_payout_amount, vendor_payout_status, created_at, hotels(name)')
       .order('created_at', { ascending: false })
       .limit(200);
 
@@ -48,6 +49,23 @@ export default function AdminPayoutsScreen() {
     setRefreshing(false);
   }, []);
 
+  const markPayoutPaid = async (transactionId: string) => {
+    setBusyId(transactionId);
+    setError(null);
+    const { error: updateError } = await supabase.rpc('admin_update_vendor_payout', {
+      p_transaction_id: transactionId,
+      p_status: 'paid',
+    });
+    if (updateError) {
+      setError(updateError.message);
+    } else {
+      setPayouts((current) => current.map((payout) => payout.id === transactionId
+        ? { ...payout, vendor_payout_status: 'paid' }
+        : payout));
+    }
+    setBusyId(null);
+  };
+
   useFocusEffect(useCallback(() => {
     void loadPayouts();
   }, [loadPayouts]));
@@ -58,7 +76,7 @@ export default function AdminPayoutsScreen() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void loadPayouts(true)} />}
     >
       <Text style={styles.heading}>Payout history</Text>
-      <Text style={styles.subtitle}>Financial history is retained when related accounts, properties, or bookings are removed.</Text>
+      <Text style={styles.subtitle}>Booking commission and vendor shares from the platform transaction ledger.</Text>
       {loading ? <Text style={styles.state}>Loading payout records…</Text> : null}
       {error ? (
         <View style={styles.errorCard}>
@@ -72,16 +90,26 @@ export default function AdminPayoutsScreen() {
       {payouts.map((payout) => (
         <View key={payout.id} style={styles.card}>
           <View style={styles.row}>
-            <Text style={styles.id}>Payout {payout.id.slice(0, 8)}</Text>
-            <Text style={styles.status}>{payout.status}</Text>
+            <Text style={styles.id}>Booking {payout.booking_id?.slice(0, 8) ?? payout.id.slice(0, 8)}</Text>
+            <Text style={styles.status}>{payout.vendor_payout_status.replaceAll('_', ' ')}</Text>
           </View>
           <Text style={styles.vendor}>{payout.hotels?.name ?? 'Deleted property'}</Text>
-          <Text style={styles.amount}>{formatMoney(payout.amount)}</Text>
+          <Text style={styles.amount}>{formatMoney(payout.total_amount)}</Text>
           <Text style={styles.meta}>
-            Vendor share {formatMoney(payout.hotel_share)} · Commission {formatMoney(payout.commission)}
+            Vendor share {formatMoney(payout.hotel_payout_amount)} · Commission {formatMoney(payout.commission_amount)}
           </Text>
           <Text style={styles.meta}>Booking reference: {payout.booking_id?.slice(0, 8) ?? 'record retained'}</Text>
           <Text style={styles.meta}>{new Date(payout.created_at).toLocaleDateString()}</Text>
+          {payout.vendor_payout_status === 'eligible' ? (
+            <TouchableOpacity
+              accessibilityRole="button"
+              disabled={busyId === payout.id}
+              style={[styles.markPaidButton, busyId === payout.id && styles.markPaidDisabled]}
+              onPress={() => void markPayoutPaid(payout.id)}
+            >
+              <Text style={styles.markPaidText}>{busyId === payout.id ? 'Saving…' : 'Mark vendor transfer paid'}</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       ))}
     </ScrollView>
@@ -104,4 +132,7 @@ const styles = StyleSheet.create({
   error: { color: '#A64339', fontSize: 12 },
   retry: { alignSelf: 'flex-start', paddingHorizontal: 13, paddingVertical: 8, borderRadius: 8, backgroundColor: '#A84339' },
   retryText: { color: '#FFFFFF', fontWeight: '800', fontSize: 11 },
+  markPaidButton: { alignSelf: 'flex-start', marginTop: 6, paddingHorizontal: 13, paddingVertical: 9, borderRadius: 7, backgroundColor: '#087E8B' },
+  markPaidDisabled: { opacity: 0.6 },
+  markPaidText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
 });

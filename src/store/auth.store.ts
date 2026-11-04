@@ -28,7 +28,7 @@ interface AuthState {
     password: string,
     fullName: string,
     role?: AppRole,
-    vendorApplication?: { businessName: string; termsVersion: string; planId: 'free' | 'pro'; paymentPolicyVersion: string },
+    vendorApplication?: { businessName: string; termsVersion: string; paymentPolicyVersion: string },
   ) => Promise<{ userId: string; otpLength: number; expiresInSeconds: number }>;
   verifySignUpOtp: (email: string, token: string, type?: 'signup' | 'magiclink') => Promise<void>;
   resendSignUpOtp: (
@@ -64,12 +64,35 @@ type PublicUserRow = {
   disabled: boolean | null;
 };
 
+const isExpiredAccessTokenError = (error: { code?: string; message?: string }) => {
+  const message = error.message?.toLowerCase() ?? '';
+  return error.code === 'PGRST301'
+    || message.includes('exp claim timestamp check failed')
+    || message.includes('jwt expired');
+};
+
 const fetchProfile = async (userId: string): Promise<AuthProfile | null> => {
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('users')
     .select('id, email, fullname, role, vendor_status, disabled')
     .eq('id', userId)
     .maybeSingle();
+
+  if (error && isExpiredAccessTokenError(error)) {
+    const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError) {
+      throw new Error(`Your sign-in session could not be refreshed. Sign in again to continue. ${refreshError.message}`);
+    }
+    if (!refreshed.session) {
+      throw new Error('Your sign-in session could not be refreshed. Sign in again to continue.');
+    }
+
+    ({ data, error } = await supabase
+      .from('users')
+      .select('id, email, fullname, role, vendor_status, disabled')
+      .eq('id', userId)
+      .maybeSingle());
+  }
 
   if (error) {
     throw error;
@@ -113,10 +136,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (session?.user) {
         const profile = await fetchProfile(session.user.id);
+        const { data: currentSession } = await supabase.auth.getSession();
+        const activeSession = currentSession.session ?? session;
         set({
-          session,
-          profile: profile ?? toProfile(session.user),
-          role: profile?.role ?? toProfile(session.user).role,
+          session: activeSession,
+          profile: profile ?? toProfile(activeSession.user),
+          role: profile?.role ?? toProfile(activeSession.user).role,
           loading: false,
           error: null,
         });
@@ -214,7 +239,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     password: string,
     fullName: string,
     role: AppRole = 'user',
-    vendorApplication?: { businessName: string; termsVersion: string; planId: 'free' | 'pro' },
+    vendorApplication?: { businessName: string; termsVersion: string; paymentPolicyVersion: string },
   ) => {
     set({ loading: true, error: null });
 
@@ -230,7 +255,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           ? {
               businessName: vendorApplication.businessName,
               termsVersion: vendorApplication.termsVersion,
-              planId: vendorApplication.planId,
               paymentPolicyVersion: vendorApplication.paymentPolicyVersion,
               paymentPolicyAgreed: true,
             }

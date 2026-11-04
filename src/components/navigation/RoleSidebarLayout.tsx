@@ -39,7 +39,6 @@ const adminItems = [
   { label: 'Vendors', href: '/(admin)/vendors', icon: 'briefcase-outline' },
   { label: 'Users', href: '/(admin)/users', icon: 'people-outline' },
   { label: 'Payouts', href: '/(admin)/payouts', icon: 'wallet-outline' },
-  { label: 'Withdrawals', href: '/(admin)/withdrawals', icon: 'cash-outline' },
   { label: 'Settings', href: '/(admin)/settings', icon: 'settings-outline' },
   { label: 'Reports', href: '/(admin)/reports', icon: 'bar-chart-outline' },
 ] as const satisfies readonly NavigationItem[];
@@ -49,7 +48,6 @@ const vendorItems = [
   { label: 'Rooms', href: '/(vendor)/hotels', icon: 'business-outline' },
   { label: 'Bookings', href: '/(vendor)/bookings', icon: 'calendar-outline' },
   { label: 'Earnings', href: '/(vendor)/payouts', icon: 'wallet-outline' },
-  { label: 'Withdrawals', href: '/(vendor)/withdrawals', icon: 'cash-outline' },
   { label: 'Settings', href: '/(vendor)/profile', icon: 'person-outline' },
 ] as const satisfies readonly NavigationItem[];
 
@@ -93,29 +91,19 @@ function RoleSidebarLayout({ brand, description, items, showSignOut = false }: R
 
   useEffect(() => {
     let active = true;
-    const timeout = setTimeout(() => {
-      if (!userId || !showWallet) {
+    if (!userId || !showWallet) {
+      setWalletBalance(null);
+      return () => { active = false; };
+    }
+    void supabase.rpc('get_my_wallet_summary').then(({ data, error }) => {
+      if (!active) return;
+      if (error) {
         setWalletBalance(null);
-        return;
+      } else {
+        setWalletBalance(Number(data?.[0]?.available_balance ?? 0));
       }
-      void (async () => {
-        try {
-          const { data, error } = await supabase.rpc('get_my_wallet_summary');
-          if (!active) return;
-          if (error) {
-            setWalletBalance(null);
-          } else {
-            setWalletBalance(Number(data?.[0]?.available_balance ?? 0));
-          }
-        } catch {
-          if (active) setWalletBalance(null);
-        }
-      })();
-    }, 0);
-    return () => {
-      active = false;
-      clearTimeout(timeout);
-    };
+    });
+    return () => { active = false; };
   }, [description, pathname, showWallet, userId]);
 
   const handleSignOut = async () => {

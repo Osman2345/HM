@@ -1,19 +1,19 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { verifyBackendPayment, verifyBackendVendorUpgrade } from '@/lib/backend';
+import { verifyBackendPayment } from '@/lib/backend';
 
 export default function PaymentCallbackScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ reference?: string; bookingId?: string; purchaseType?: string }>();
+  const params = useLocalSearchParams<{ reference?: string; bookingId?: string }>();
   const [status, setStatus] = useState<string>('processing');
   const [message, setMessage] = useState('Processing your payment update...');
 
   useEffect(() => {
     const reference = typeof params.reference === 'string' ? params.reference : '';
     const bookingId = typeof params.bookingId === 'string' ? params.bookingId : '';
-    const isVendorUpgrade = params.purchaseType === 'vendor_upgrade';
     let isMounted = true;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
 
     const verify = async () => {
       if (!reference) {
@@ -22,58 +22,55 @@ export default function PaymentCallbackScreen() {
         return;
       }
 
-      try {
-        const response = isVendorUpgrade
-          ? await verifyBackendVendorUpgrade(reference)
-          : await verifyBackendPayment(reference);
-        if (!isMounted) {
-          return;
+      let nextStatus = 'pending';
+      let verificationError = '';
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        try {
+          const response = await verifyBackendPayment(reference);
+          if (!isMounted) return;
+          nextStatus = String(response?.data?.status ?? 'pending').toLowerCase();
+          verificationError = '';
+          setStatus(nextStatus);
+          setMessage(
+            ['success', 'paid'].includes(nextStatus)
+              ? 'Payment verified successfully.'
+              : nextStatus === 'failed'
+                ? 'Payment was not completed. You can retry from your booking.'
+                : 'Payment is being reviewed.',
+          );
+          if (['success', 'paid', 'failed', 'refunded'].includes(nextStatus)) break;
+        } catch (caughtError) {
+          if (!isMounted) return;
+          verificationError = caughtError instanceof Error ? caughtError.message : 'Verification failed';
+          setMessage('Checking payment status…');
         }
 
-        const verifiedStatus = response?.data?.status ?? 'pending';
-        const nextStatus = String(verifiedStatus).toLowerCase();
-        setStatus(nextStatus);
-        setMessage(
-          ['success', 'paid'].includes(nextStatus)
-            ? isVendorUpgrade
-              ? 'Your PRO vendor upgrade was verified successfully.'
-              : 'Payment verified successfully.'
-            : nextStatus === 'failed'
-              ? isVendorUpgrade
-                ? 'The PRO upgrade payment was not completed.'
-                : 'Payment was not completed. You can retry from your booking.'
-              : 'Payment is being reviewed.',
-        );
-
-        const target = isVendorUpgrade
-          ? '/(vendor)/dashboard'
-          : bookingId
-            ? { pathname: '/booking/[id]' as const, params: { id: bookingId, paymentReference: reference } }
-            : '/';
-        const timeout = setTimeout(() => {
-          if (isMounted) {
-            router.replace(target);
-          }
-        }, 1500);
-
-        return () => clearTimeout(timeout);
-      } catch (caughtError) {
-        if (!isMounted) {
-          return;
+        if (attempt < 5) {
+          await new Promise<void>((resolve) => {
+            timeout = setTimeout(resolve, 2000);
+          });
         }
-
-        const errorMessage = caughtError instanceof Error ? caughtError.message : 'Verification failed';
-        setStatus('failed');
-        setMessage(errorMessage);
       }
+
+      if (!isMounted) return;
+      if (verificationError) {
+        setStatus('pending');
+        setMessage(verificationError);
+      }
+
+      const target = bookingId
+        ? { pathname: '/booking/[id]' as const, params: { id: bookingId, paymentReference: reference } }
+        : '/';
+      router.replace(target);
     };
 
     void verify();
 
     return () => {
       isMounted = false;
+      if (timeout) clearTimeout(timeout);
     };
-  }, [params.bookingId, params.purchaseType, params.reference, router]);
+  }, [params.bookingId, params.reference, router]);
 
   return (
     <View style={styles.container}>

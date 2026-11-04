@@ -8,11 +8,16 @@ interface AdminPayout {
   hotel_id: string | null;
   booking_id: string | null;
   total_amount: number;
+  amount: number | null;
   commission_amount: number;
   hotel_payout_amount: number;
+  type: string;
+  note: string | null;
+  released_at: string | null;
   vendor_payout_status: 'pending' | 'eligible' | 'paid';
   created_at: string;
   hotels: { name: string } | null;
+  bookings: { is_test: boolean } | null;
 }
 
 const formatMoney = (value: number) =>
@@ -36,7 +41,7 @@ export default function AdminPayoutsScreen() {
 
     const { data, error: fetchError } = await supabase
       .from('transactions')
-      .select('id, hotel_id, booking_id, total_amount, commission_amount, hotel_payout_amount, vendor_payout_status, created_at, hotels(name)')
+      .select('id, hotel_id, booking_id, total_amount, amount, commission_amount, hotel_payout_amount, type, note, released_at, vendor_payout_status, created_at, hotels(name), bookings(is_test)')
       .order('created_at', { ascending: false })
       .limit(200);
 
@@ -94,13 +99,15 @@ export default function AdminPayoutsScreen() {
             <Text style={styles.status}>{payout.vendor_payout_status.replaceAll('_', ' ')}</Text>
           </View>
           <Text style={styles.vendor}>{payout.hotels?.name ?? 'Deleted property'}</Text>
+          {payout.bookings?.is_test ? <Text style={styles.testModeBadge}>TEST MODE · simulated earnings</Text> : null}
           <Text style={styles.amount}>{formatMoney(payout.total_amount)}</Text>
           <Text style={styles.meta}>
             Vendor share {formatMoney(payout.hotel_payout_amount)} · Commission {formatMoney(payout.commission_amount)}
           </Text>
+          {payout.type === 'PAYOUT_RELEASE' && payout.note ? <Text style={styles.meta}>{payout.note}</Text> : null}
           <Text style={styles.meta}>Booking reference: {payout.booking_id?.slice(0, 8) ?? 'record retained'}</Text>
-          <Text style={styles.meta}>{new Date(payout.created_at).toLocaleDateString()}</Text>
-          {payout.vendor_payout_status === 'eligible' ? (
+          <Text style={styles.meta}>{new Date(payout.released_at ?? payout.created_at).toLocaleDateString()}</Text>
+          {payout.vendor_payout_status === 'eligible' && !payout.bookings?.is_test ? (
             <TouchableOpacity
               accessibilityRole="button"
               disabled={busyId === payout.id}
@@ -124,6 +131,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   id: { fontSize: 12, fontWeight: '800', color: '#64748B' },
   status: { color: '#087E8B', fontSize: 11, fontWeight: '800', textTransform: 'capitalize' },
+  testModeBadge: { alignSelf: 'flex-start', color: '#8A4B08', backgroundColor: '#FFF1CC', overflow: 'hidden', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, fontSize: 9, fontWeight: '900' },
   vendor: { marginTop: 3, color: '#17354B', fontSize: 15, fontWeight: '800' },
   amount: { color: '#17354B', fontSize: 19, fontWeight: '900' },
   meta: { color: '#718397', fontSize: 11 },

@@ -117,14 +117,25 @@ booking status updates.
 Apply `0021_repair_favorites_created_at.sql` if Saved hotels reports that
 `favorites.created_at` is missing; it restores the timestamp used to order
 saved hotels.
-Apply `0022_vendor_document_requirements.sql` and
-`0023_vendor_plans_and_earnings.sql` for three-document vendor verification,
-FREE/PRO plans, one-time Monime PRO upgrades, database-enforced hotel limits,
-and recorded booking commission and payout shares. Apply
-`0024_require_selected_pro_payment_before_listing.sql` as well to require
-vendors who selected PRO at signup to complete the Le 100 payment before their
-first hotel listing. The dashboard offers the payment checkout immediately
-after admin approval. Vendor documents remain in
+Apply `0022_vendor_document_requirements.sql` through
+`0029_wallet_role_detection_fix.sql` in numeric order for three-document
+vendor verification, booking commission and payout recording, wallet
+withdrawals, and account controls. Apply
+`0030_remove_vendor_plans_keep_commission.sql` to remove legacy vendor plans,
+plan payments, and hotel-count limits, then apply
+`0031_monime_test_payment_verification.sql` for Monime test-mode paid booking
+and simulated earnings, followed by
+`0032_monime_test_payment_simulation.sql` to simulate `mon_test_` booking
+payments as Le 1 pending TEST transactions without calling Monime. The TEST PIN
+is `1234`; live tokens continue to use Monime checkout. Apply
+`0033_booking_voucher_pgcrypto_search_path.sql` to ensure payment confirmation
+can access pgcrypto when issuing booking vouchers. Apply
+`0034_admin_test_fund_release.sql` to enable the admin release action for paid
+Le 1 TEST bookings; it updates the vendor's eligible wallet balance without
+transferring real funds. Apply `0035_test_payment_method_details.sql` to store
+the selected TEST wallet label and phone number on its payment record. All
+active vendors then use the same
+administrator-configured booking commission. Vendor documents remain in
 a private Storage bucket; administrators and the document owner use
 short-lived signed links to view them. Earnings are recorded for dashboard
 display only; the project does not automatically transfer payouts.
@@ -146,11 +157,22 @@ Configure the backend:
    `MONIME_SPACE_ID` in `server/.env`. Live access tokens start with `mon_`
    (not `mon_test_`) and Space IDs start with `spc-`. Add the signing secret
    for your Live webhook as `MONIME_WEBHOOK_SECRET`. Keep
-   `MONIME_CURRENCY=SLE` and `MONIME_API_VERSION=caph.2025-08-23`.
-3. Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in that same backend-only
-   file for server-side Auth OTP generation and payment verification. Leave
-   `PAYMENT_CALLBACK_URL` empty to use the app's
-   `hotelmanagement://payment/callback` deep link.
+   `MONIME_MODE=LIVE`, `MONIME_CURRENCY=SLE`, and
+   `MONIME_API_VERSION=caph.2025-08-23`. For TEST simulation, use a
+   `mon_test_` token and set `MONIME_MODE=TEST`; the app simulates a Le 1
+   payment using PIN `1234` without calling Monime or moving money. The
+   simulated vendor earnings remain pending until an administrator releases
+   them. Live credentials continue to use Monime checkout. The backend rejects
+   a mode/token mismatch and `/api/health` reports the mode loaded by the
+   running server. Do not mix test and live credentials.
+3. Set `SUPABASE_URL` and `SUPABASE_SECRET_KEY` in that same backend-only file
+   for server-side Auth OTP generation and payment verification. The secret key
+   must be enabled for the same Supabase project; existing installations may
+   keep using    `SUPABASE_SERVICE_ROLE_KEY` for a legacy service-role JWT. Set
+   `PAYMENT_CALLBACK_URL` to
+   `https://<your-public-backend-host>/api/payments/return`. Monime requires a
+   public HTTPS return URL; the backend redirects that URL into the app's
+   `hotelmanagement://payment/callback` route.
 4. In the Monime **Live** dashboard, register
    `https://<your-public-backend-host>/api/payments/monime-webhook` as a
    webhook URL, subscribe to `checkout_session.completed`,
@@ -166,8 +188,8 @@ Live mode processes real payments. Confirm the Live Space, currency,
 settlement details, webhook secret, and production HTTPS backend before
 accepting customer payments. The app redirects customers to Monime Checkout
 and verifies the checkout session against Monime's API before marking a
-booking paid. Never put `MONIME_ACCESS_TOKEN` or `SUPABASE_SERVICE_ROLE_KEY`
-in the project-root `.env`, an `EXPO_PUBLIC_*` variable,
+booking paid. Never put `MONIME_ACCESS_TOKEN`, `SUPABASE_SECRET_KEY`, or
+`SUPABASE_SERVICE_ROLE_KEY` in the project-root `.env`, an `EXPO_PUBLIC_*` variable,
 `server/.env.example`, or app code.
 
 ## Get a fresh project

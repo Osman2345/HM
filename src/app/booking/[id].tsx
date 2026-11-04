@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import SLStayPayment, { type SLStayPaymentSuccess } from '@/components/SLStayPayment';
 import { createBackendPayment, verifyBackendPayment } from '@/lib/backend';
 import { supabase } from '@/lib/supabase';
 
@@ -13,6 +14,7 @@ type BookingRow = {
   hotel_id: string | null;
   booking_status: string | null;
   payment_status: string | null;
+  is_test: boolean;
   payment_method: 'monime' | 'pay_at_hotel';
   voucher_code: string | null;
   checked_out_at: string | null;
@@ -49,6 +51,7 @@ export default function BookingDetailsScreen() {
     paymentReference?: string;
     authorizationUrl?: string;
     paymentSetupError?: string;
+    simulated?: string;
   }>();
   const bookingId = Array.isArray(params.id) ? params.id[0] : params.id;
   const [booking, setBooking] = useState<BookingRow | null>(null);
@@ -64,14 +67,23 @@ export default function BookingDetailsScreen() {
     typeof params.authorizationUrl === 'string' ? params.authorizationUrl : null,
   );
   const [paymentBusy, setPaymentBusy] = useState(false);
-  const [verifyingPayment, setVerifyingPayment] = useState(Boolean(params.paymentReference));
+  const [showPay, setShowPay] = useState(false);
+  const [testPaymentReference, setTestPaymentReference] = useState(
+    params.simulated === 'true' && typeof params.paymentReference === 'string'
+      ? params.paymentReference
+      : null,
+  );
+  const [testPaymentSuccess, setTestPaymentSuccess] = useState(false);
+  const [verifyingPayment, setVerifyingPayment] = useState(
+    Boolean(params.paymentReference && params.simulated !== 'true'),
+  );
   const [now, setNow] = useState(0);
 
   const loadBooking = useCallback(async () => {
     try {
       const { data, error: fetchError } = await supabase
         .from('bookings')
-        .select('id, hotel_id, booking_status, payment_status, payment_method, voucher_code, checked_out_at, total_price, room_type, check_in, check_out, guests, rooms, created_at')
+        .select('id, hotel_id, booking_status, payment_status, is_test, payment_method, voucher_code, checked_out_at, total_price, room_type, check_in, check_out, guests, rooms, created_at')
         .eq('id', bookingId)
         .maybeSingle();
       if (fetchError) throw fetchError;
@@ -101,7 +113,7 @@ export default function BookingDetailsScreen() {
 
   useEffect(() => {
     const reference = typeof params.paymentReference === 'string' ? params.paymentReference : null;
-    if (!reference) return;
+    if (!reference || params.simulated === 'true') return;
     let isMounted = true;
     const verifyPayment = async () => {
       try {
@@ -121,19 +133,26 @@ export default function BookingDetailsScreen() {
     return () => {
       isMounted = false;
     };
-  }, [loadBooking, params.paymentReference]);
+  }, [loadBooking, params.paymentReference, params.simulated]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const paymentLabel = (paymentStatus && ['paid', 'success', 'pending', 'failed'].includes(paymentStatus.toLowerCase())
-    ? paymentStatus
-    : booking?.payment_status) ?? 'pending';
+  const isPendingTest = booking?.is_test === true && booking.payment_status === 'pending';
+  const isTestDemo = booking?.is_test === true && Number(booking.total_price) === 1;
+  const paymentLabel = testPaymentSuccess
+    ? 'test_success'
+    : isPendingTest
+      ? 'pending_test'
+      : (paymentStatus && ['paid', 'success', 'pending', 'failed'].includes(paymentStatus.toLowerCase())
+        ? paymentStatus
+        : booking?.payment_status) ?? 'pending';
   const paymentComplete = ['paid', 'success'].includes(paymentLabel.toLowerCase());
+  const testPaymentComplete = isTestDemo && (paymentComplete || testPaymentSuccess);
   const paymentFailed = ['failed', 'refunded'].includes(paymentLabel.toLowerCase());
-  const bookingCancelled = booking?.booking_status?.toLowerCase() === 'cancelled';
+  const bookingCancelled = !isPendingTest && booking?.booking_status?.toLowerCase() === 'cancelled';
   const noShow = booking?.booking_status?.toLowerCase() === 'no_show';
   const bookingConfirmed = !noShow && (paymentComplete || booking?.booking_status?.toLowerCase() === 'confirmed');
   const createdAt = booking ? new Date(booking.created_at).getTime() : Number.NaN;
@@ -143,7 +162,16 @@ export default function BookingDetailsScreen() {
   const holdMinutes = Math.floor(holdRemaining / 60000);
   const holdSeconds = Math.floor((holdRemaining % 60000) / 1000);
   const nights = getNights(booking?.check_in ?? null, booking?.check_out ?? null);
-  const canPay = booking?.payment_method === 'monime' && !paymentComplete && !paymentFailed && !bookingCancelled && !noShow && !holdExpired && !verifyingPayment;
+  const canRecoverFailedTestPayment = booking?.payment_status === 'failed'
+    && booking.booking_status?.toLowerCase() === 'cancelled'
+    && !holdExpired;
+  const canPay = booking?.payment_method === 'monime'
+    && !isPendingTest
+    && !paymentComplete
+    && (!paymentFailed && !bookingCancelled || canRecoverFailedTestPayment)
+    && !noShow
+    && !holdExpired
+    && !verifyingPayment;
 
   const startPayment = async () => {
     if (!booking || !canPay) return;
@@ -153,12 +181,55 @@ export default function BookingDetailsScreen() {
       let authorizationUrl = paymentAuthorizationUrl;
       if (!authorizationUrl) {
         const payment = await createBackendPayment({ bookingId: booking.id });
+        if (payment.simulated) {
+          setTestPaymentReference(payment.reference);
+          await loadBooking();
+          setShowPay(true);
+          return;
+        }
+        if (!payment.authorization_url) {
+          throw new Error('Monime did not return a checkout URL.');
+        }
         authorizationUrl = payment.authorization_url;
         setPaymentAuthorizationUrl(authorizationUrl);
       }
+      if (!authorizationUrl) throw new Error('Monime did not return a checkout URL.');
       await Linking.openURL(authorizationUrl);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Unable to start payment');
+    } finally {
+      setPaymentBusy(false);
+    }
+  };
+
+  const confirmTestPayment = async (data: SLStayPaymentSuccess) => {
+    if (!booking || paymentBusy) return;
+    setError(null);
+    setPaymentVerifyError(null);
+    setPaymentBusy(true);
+    try {
+      let reference = testPaymentReference;
+      if (!reference) {
+        const payment = await createBackendPayment({ bookingId: booking.id });
+        if (!payment.simulated || !payment.reference) {
+          throw new Error('Test payment simulation is not available for this booking.');
+        }
+        reference = payment.reference;
+        setTestPaymentReference(reference);
+      }
+
+      const response = await verifyBackendPayment(reference, data.pin, {
+        method: data.method,
+        phone: data.phone,
+      });
+      if (!response.simulated || response.data?.status !== 'success') {
+        throw new Error('The TEST payment could not be confirmed.');
+      }
+      setTestPaymentSuccess(true);
+      setPaymentStatus('success');
+      await loadBooking();
+    } catch (caughtError) {
+      setPaymentVerifyError(caughtError instanceof Error ? caughtError.message : 'Test payment failed');
     } finally {
       setPaymentBusy(false);
     }
@@ -183,20 +254,24 @@ export default function BookingDetailsScreen() {
         <Ionicons name="arrow-back" size={20} color="#0F172A" /><Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
 
-      <View style={[styles.statusHero, (paymentComplete || bookingConfirmed) && styles.statusHeroPaid, (paymentFailed || bookingCancelled || noShow) && styles.statusHeroFailed]}>
-        <View style={[styles.statusIcon, (paymentComplete || bookingConfirmed) && styles.statusIconPaid, (paymentFailed || bookingCancelled || noShow) && styles.statusIconFailed]}>
+      <View style={[styles.statusHero, (paymentComplete || bookingConfirmed || testPaymentComplete) && styles.statusHeroPaid, (paymentFailed || bookingCancelled || noShow) && styles.statusHeroFailed]}>
+        <View style={[styles.statusIcon, (paymentComplete || bookingConfirmed || testPaymentComplete) && styles.statusIconPaid, (paymentFailed || bookingCancelled || noShow) && styles.statusIconFailed]}>
           <Ionicons
-            name={(paymentComplete || bookingConfirmed) && !noShow ? 'checkmark' : (paymentFailed || bookingCancelled || noShow) ? 'close' : 'card-outline'}
+            name={(paymentComplete || bookingConfirmed || testPaymentComplete) && !noShow ? 'checkmark' : (paymentFailed || bookingCancelled || noShow) ? 'close' : 'card-outline'}
             size={25}
-            color={(paymentComplete || bookingConfirmed) && !noShow ? '#027A48' : (paymentFailed || bookingCancelled || noShow) ? '#B42318' : '#087E8B'}
+            color={(paymentComplete || bookingConfirmed || testPaymentComplete) && !noShow ? '#027A48' : (paymentFailed || bookingCancelled || noShow) ? '#B42318' : '#087E8B'}
           />
         </View>
-        <Text style={styles.eyebrow}>{noShow ? 'NO-SHOW RECORDED' : paymentComplete ? 'YOU’RE ALL SET' : bookingConfirmed ? 'RESERVATION CONFIRMED' : bookingCancelled ? 'BOOKING CANCELLED' : paymentFailed ? 'PAYMENT NOT COMPLETED' : 'ALMOST THERE'}</Text>
-        <Text style={styles.heading}>{noShow ? 'This booking was marked no-show' : paymentComplete ? 'Booking confirmed' : bookingConfirmed ? 'Reservation confirmed' : bookingCancelled ? 'This booking is cancelled' : paymentFailed ? 'Payment failed' : 'Complete your booking'}</Text>
-        <Text style={styles.subtitle}>{hotelName || `Booking #${booking.id.slice(0, 8).toUpperCase()}`}</Text>
+        <Text style={styles.eyebrow}>{booking.payment_method === 'pay_at_hotel' && !bookingCancelled && !noShow ? 'BOOKING RESERVED' : testPaymentComplete ? 'TEST PAYMENT SIMULATED' : isPendingTest ? 'TEST MODE' : noShow ? 'NO-SHOW RECORDED' : paymentComplete ? 'YOU’RE ALL SET' : bookingConfirmed ? 'RESERVATION CONFIRMED' : bookingCancelled ? 'BOOKING CANCELLED' : paymentFailed ? 'PAYMENT NOT COMPLETED' : 'ALMOST THERE'}</Text>
+        <Text style={styles.heading}>{booking.payment_method === 'pay_at_hotel' && !bookingCancelled && !noShow ? 'Booking Reserved!' : testPaymentComplete ? 'Payment Success - TEST Le 1' : isPendingTest ? 'TEST MODE Enter PIN 1234' : noShow ? 'This booking was marked no-show' : paymentComplete ? 'Booking confirmed' : bookingConfirmed ? 'Reservation confirmed' : bookingCancelled ? 'This booking is cancelled' : paymentFailed ? 'Payment failed' : 'Complete your booking'}</Text>
+        <Text style={styles.subtitle}>
+          {booking.payment_method === 'pay_at_hotel' && !bookingCancelled && !noShow
+            ? `You will pay Le ${Number(booking.total_price ?? 0).toLocaleString('en-SL')} cash at hotel. Booking Code: ${booking.id.slice(0, 8).toUpperCase()}`
+            : hotelName || `Booking #${booking.id.slice(0, 8).toUpperCase()}`}
+        </Text>
       </View>
 
-      {booking.payment_method === 'monime' && !paymentComplete && !paymentFailed && !bookingCancelled ? (
+      {booking.payment_method === 'monime' && !paymentComplete && !paymentFailed && !bookingCancelled && !testPaymentSuccess ? (
         <View style={[styles.holdBanner, holdExpired && styles.holdExpiredBanner]}>
           <Ionicons name={holdExpired ? 'time-outline' : 'hourglass-outline'} size={19} color={holdExpired ? '#B42318' : '#9A6700'} />
           <View style={styles.holdTextGroup}>
@@ -213,10 +288,10 @@ export default function BookingDetailsScreen() {
       <View style={styles.card}>
         <View style={styles.cardHeadingRow}>
           <View><Text style={styles.cardEyebrow}>STAY DETAILS</Text><Text style={styles.cardTitle}>Your reservation</Text></View>
-          <View style={[styles.statusPill, (paymentComplete || bookingConfirmed) && styles.paidPill, (paymentFailed || bookingCancelled || noShow) && styles.failedPill]}>
-            <View style={[styles.statusDot, (paymentComplete || bookingConfirmed) && styles.paidDot, (paymentFailed || bookingCancelled || noShow) && styles.failedDot]} />
-            <Text style={[styles.statusPillText, (paymentComplete || bookingConfirmed) && styles.paidText, (paymentFailed || bookingCancelled || noShow) && styles.failedText]}>
-              {noShow ? 'No-show' : paymentComplete ? 'Paid' : bookingConfirmed ? 'Confirmed' : bookingCancelled ? 'Cancelled' : paymentFailed ? 'Failed' : 'Pending'}
+          <View style={[styles.statusPill, (paymentComplete || bookingConfirmed || testPaymentComplete) && styles.paidPill, (paymentFailed || bookingCancelled || noShow) && styles.failedPill]}>
+            <View style={[styles.statusDot, (paymentComplete || bookingConfirmed || testPaymentComplete) && styles.paidDot, (paymentFailed || bookingCancelled || noShow) && styles.failedDot]} />
+            <Text style={[styles.statusPillText, (paymentComplete || bookingConfirmed || testPaymentComplete) && styles.paidText, isPendingTest && styles.testPendingText, (paymentFailed || bookingCancelled || noShow) && styles.failedText]}>
+              {testPaymentComplete ? 'TEST success' : isPendingTest ? 'Pending (TEST)' : noShow ? 'No-show' : paymentComplete ? 'Paid' : bookingConfirmed ? 'Confirmed' : bookingCancelled ? 'Cancelled' : paymentFailed ? 'Failed' : 'Pending'}
             </Text>
           </View>
         </View>
@@ -246,14 +321,14 @@ export default function BookingDetailsScreen() {
         <View style={styles.paymentHeading}>
           <View style={styles.paymentHeadingIcon}><Ionicons name="shield-checkmark-outline" size={19} color="#087E8B" /></View>
           <View>
-            <Text style={styles.paymentTitle}>{booking.payment_method === 'pay_at_hotel' ? 'Pay at the hotel' : 'Secure payment'}</Text>
-            <Text style={styles.paymentSubtitle}>{booking.payment_method === 'pay_at_hotel' ? 'Payment is recorded by the hotel at checkout.' : 'Protected checkout powered by Monime'}</Text>
+            <Text style={styles.paymentTitle}>{isTestDemo ? 'TEST payment simulation' : booking.payment_method === 'pay_at_hotel' ? 'Pay at the hotel' : 'Secure payment'}</Text>
+            <Text style={styles.paymentSubtitle}>{isTestDemo ? 'No real money will be moved.' : booking.payment_method === 'pay_at_hotel' ? 'Payment is recorded by the hotel at checkout.' : 'Protected checkout powered by Monime'}</Text>
           </View>
         </View>
         <View style={styles.paymentDivider} />
         <View style={styles.paymentStateRow}>
           <Text style={styles.paymentStateLabel}>Payment status</Text>
-          <Text style={[styles.paymentStateValue, paymentComplete && styles.paidText, paymentFailed && styles.failedText]}>{paymentComplete ? 'Paid' : paymentFailed ? 'Failed' : booking.payment_method === 'pay_at_hotel' ? 'Due at checkout' : paymentStatus === 'pending' ? 'Awaiting payment' : 'Not paid yet'}</Text>
+          <Text style={[styles.paymentStateValue, (paymentComplete || testPaymentComplete) && styles.paidText, isPendingTest && styles.testPendingText, paymentFailed && styles.failedText]}>{testPaymentComplete ? 'Payment Success - TEST Le 1' : isPendingTest ? 'Pending (TEST) - Le 1' : paymentComplete ? 'Paid' : paymentFailed ? 'Failed' : booking.payment_method === 'pay_at_hotel' ? 'Due at checkout' : paymentStatus === 'pending' ? 'Awaiting payment' : 'Not paid yet'}</Text>
         </View>
       </View>
 
@@ -268,7 +343,7 @@ export default function BookingDetailsScreen() {
         </View>
       ) : null}
 
-      {paymentComplete || bookingConfirmed ? (
+      {paymentComplete || bookingConfirmed || testPaymentComplete ? (
         <TouchableOpacity style={styles.primaryButton} onPress={() => router.replace('/(tabs)/bookings')}>
           <Ionicons name="receipt-outline" size={19} color="#FFFFFF" /><Text style={styles.primaryButtonText}>View my bookings</Text>
         </TouchableOpacity>
@@ -279,7 +354,7 @@ export default function BookingDetailsScreen() {
       ) : canPay ? (
         <TouchableOpacity style={[styles.primaryButton, paymentBusy && styles.buttonBusy]} onPress={() => void startPayment()} disabled={paymentBusy}>
           {paymentBusy ? <ActivityIndicator color="#FFFFFF" /> : <Ionicons name="lock-closed-outline" size={19} color="#FFFFFF" />}
-          <Text style={styles.primaryButtonText}>{paymentBusy ? 'Opening secure checkout…' : paymentAuthorizationUrl ? 'Continue to payment' : 'Pay now'}</Text>
+          <Text style={styles.primaryButtonText}>{paymentBusy ? 'Opening secure checkout…' : paymentAuthorizationUrl ? 'Continue to payment' : canRecoverFailedTestPayment ? 'Retry payment' : 'Pay now'}</Text>
           {!paymentBusy ? <Ionicons name="arrow-forward" size={17} color="#FFFFFF" /> : null}
         </TouchableOpacity>
       ) : null}
@@ -290,11 +365,25 @@ export default function BookingDetailsScreen() {
         </TouchableOpacity>
       ) : null}
 
+      {isPendingTest && !paymentComplete && !testPaymentSuccess ? (
+        <TouchableOpacity style={styles.primaryButton} onPress={() => setShowPay(true)}>
+          <Ionicons name="card-outline" size={19} color="#FFFFFF" />
+          <Text style={styles.primaryButtonText}>Pay Le {Number(booking.total_price ?? 1).toLocaleString()}</Text>
+        </TouchableOpacity>
+      ) : null}
+
       {paymentNotice ? <View style={styles.notice}><Ionicons name="information-circle-outline" size={18} color="#087E8B" /><Text style={styles.noticeText}>{paymentNotice} You can retry while your room hold is active.</Text></View> : null}
       {paymentVerifyError ? <View style={styles.errorNotice}><Ionicons name="warning-outline" size={18} color="#B42318" /><Text style={styles.errorNoticeText}>Payment status could not be verified: {paymentVerifyError}</Text></View> : null}
       {error ? <View style={styles.errorNotice}><Ionicons name="warning-outline" size={18} color="#B42318" /><Text style={styles.errorNoticeText}>{error}</Text></View> : null}
       {verifyingPayment ? <View style={styles.verifying}><ActivityIndicator color="#087E8B" /><Text style={styles.verifyingText}>Verifying your payment securely…</Text></View> : null}
       <Text style={styles.footerNote}>{booking.payment_method === 'pay_at_hotel' ? 'Your voucher is issued once the hotel confirms the reservation.' : 'Your room is only confirmed once payment is complete.'}</Text>
+      {showPay ? (
+        <SLStayPayment
+          amount={Number(booking.total_price ?? 1)}
+          onClose={() => setShowPay(false)}
+          onSuccess={confirmTestPayment}
+        />
+      ) : null}
     </ScrollView>
   );
 }
@@ -353,6 +442,7 @@ const styles = StyleSheet.create({
   paymentStateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   paymentStateLabel: { color: '#64748B', fontSize: 11 },
   paymentStateValue: { color: '#B54708', fontSize: 11, fontWeight: '800' },
+  testPendingText: { color: '#B54708' },
   voucherCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 15, borderWidth: 1, borderColor: '#B9DCDD', borderRadius: 14, backgroundColor: '#F2FAFA' },
   voucherIcon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: '#D9F0F0' },
   voucherCopy: { flex: 1 },

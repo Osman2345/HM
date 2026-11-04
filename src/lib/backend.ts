@@ -57,7 +57,6 @@ export const createBackendAccount = async (account: {
   role: 'user' | 'vendor';
   businessName?: string;
   termsVersion?: string;
-  planId?: 'free' | 'pro';
   paymentPolicyVersion?: string;
   paymentPolicyAgreed?: boolean;
 }): Promise<{ userId: string; otpLength: number; expiresInSeconds: number }> => {
@@ -104,13 +103,29 @@ export const resendBackendSignupOtp = async (
   throw new Error('The account service returned invalid verification details');
 };
 
-const getAuthorizationHeaders = async () => {
-  const { data, error } = await supabase.auth.getSession();
+const getAuthorizationHeaders = async (refreshSession = false) => {
+  const { data, error } = refreshSession
+    ? await supabase.auth.refreshSession()
+    : await supabase.auth.getSession();
   if (error) {
+    if (refreshSession) {
+      throw new Error('Your sign-in session has expired. Sign in again to continue.');
+    }
     throw error;
   }
-  if (!data.session) {
-    throw new Error('Sign in is required to access this service.');
+  const session = data.session;
+  if (!session) {
+    if (!refreshSession) {
+      return getAuthorizationHeaders(true);
+    }
+    throw new Error('Your sign-in session could not be restored. Sign in again to continue.');
+  }
+  if (
+    !refreshSession
+    && session.expires_at
+    && session.expires_at <= Math.floor(Date.now() / 1000) + 30
+  ) {
+    return getAuthorizationHeaders(true);
   }
   return {
     'Content-Type': 'application/json',
@@ -187,9 +202,84 @@ export const sendVendorDecisionEmail = async (
   }
 };
 
+export interface AdminTestFundRelease {
+  bookingId: string;
+  vendorId: string;
+  vendorName: string | null;
+  vendorPhone: string | null;
+  amount: number;
+  isTest: true;
+  note: string;
+  releasedAt: string;
+}
+
+const releaseAdminTestFunds = async (
+  path: string,
+  body?: Record<string, unknown>,
+): Promise<AdminTestFundRelease[]> => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), accountRequestTimeoutMs);
+  let response: Response;
+
+  try {
+    let headers = await getAuthorizationHeaders();
+    response = await fetch(buildBackendUrl(path), {
+      method: 'PUT',
+      headers,
+      ...(body ? { body: JSON.stringify(body) } : {}),
+      signal: controller.signal,
+    });
+    if (response.status === 401) {
+      headers = await getAuthorizationHeaders(true);
+      response = await fetch(buildBackendUrl(path), {
+        method: 'PUT',
+        headers,
+        ...(body ? { body: JSON.stringify(body) } : {}),
+        signal: controller.signal,
+      });
+    }
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error('The account server did not respond within 30 seconds.');
+    }
+    if (error instanceof TypeError) {
+      throw new Error('Cannot reach the account server. Check that the backend is running and reachable.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  const responseText = await response.text();
+  let payload: {
+    ok?: boolean;
+    error?: string;
+    release?: AdminTestFundRelease;
+    releases?: AdminTestFundRelease[];
+  } = {};
+  try {
+    payload = responseText ? JSON.parse(responseText) as typeof payload : {};
+  } catch {
+    throw new Error(`The account server returned an unreadable response (HTTP ${response.status}).`);
+  }
+  if (!response.ok || !payload.ok) {
+    throw new Error(payload.error || `The account server could not release TEST funds (HTTP ${response.status}).`);
+  }
+  if (payload.release) return [payload.release];
+  return payload.releases ?? [];
+};
+
+export const releaseAdminTestBookingFunds = (bookingId: string) =>
+  releaseAdminTestFunds(`/api/admin/bookings/${encodeURIComponent(bookingId)}/release`);
+
+export const releaseAllAdminTestBookingFunds = () =>
+  releaseAdminTestFunds('/api/admin/bookings/release-all-test');
+
 type PaymentResponse = {
   success?: boolean;
   error?: string;
+  simulated?: boolean;
+  pin?: string;
   reference?: string;
   authorization_url?: string;
   amount?: number;
@@ -208,12 +298,23 @@ const postPaymentRequest = async (
 
   let response: Response;
   try {
-    response = await fetch(buildBackendUrl(path), {
+    const url = buildBackendUrl(path);
+    let headers = await getAuthorizationHeaders();
+    response = await fetch(url, {
       method: 'POST',
-      headers: await getAuthorizationHeaders(),
+      headers,
       body: JSON.stringify(body),
       signal: controller.signal,
     });
+    if (response.status === 401) {
+      headers = await getAuthorizationHeaders(true);
+      response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    }
   } catch (error) {
     if (controller.signal.aborted) {
       throw new Error('The payment server did not respond within 15 seconds. Check that it is running and reachable, then try Pay now again.');
@@ -237,6 +338,9 @@ const postPaymentRequest = async (
   }
 
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error('Your sign-in session could not be verified. Sign out and sign in again, then retry payment.');
+    }
     throw new Error(payload.error || `The payment server returned HTTP ${response.status}.`);
   }
   return payload;
@@ -251,38 +355,30 @@ export const createBackendPayment = async ({ bookingId }: { bookingId: string })
 
   return payload as {
     success: true;
+    simulated?: boolean;
+    status?: string;
+    pin?: string;
     reference: string;
-    authorization_url: string;
+    authorization_url?: string;
     amount: number;
     currency: string;
   };
 };
 
-export const createBackendVendorUpgrade = async () => {
-  const payload = await postPaymentRequest('/api/vendor/upgrade', {});
-  if (!payload.success || typeof payload.reference !== 'string' || typeof payload.authorization_url !== 'string') {
-    throw new Error(payload.error || 'Unable to initialize the PRO upgrade');
-  }
-  return {
-    reference: payload.reference,
-    authorization_url: payload.authorization_url,
-  };
-};
-
-export const verifyBackendPayment = async (reference: string) => {
-  const payload = await postPaymentRequest('/api/payments/verify', { reference });
+export const verifyBackendPayment = async (
+  reference: string,
+  pin?: string,
+  testDetails?: { method: 'orange' | 'afri'; phone: string },
+) => {
+  const payload = await postPaymentRequest('/api/payments/verify', {
+    reference,
+    ...(pin ? { pin } : {}),
+    ...(testDetails ? testDetails : {}),
+  });
 
   if (!payload?.success) {
     throw new Error(payload?.error || 'Unable to verify payment');
   }
 
-  return payload;
-};
-
-export const verifyBackendVendorUpgrade = async (reference: string) => {
-  const payload = await postPaymentRequest('/api/vendor/upgrade/verify', { reference });
-  if (!payload.success) {
-    throw new Error(payload.error || 'Unable to verify the PRO upgrade');
-  }
   return payload;
 };

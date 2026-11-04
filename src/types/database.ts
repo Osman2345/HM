@@ -1,7 +1,7 @@
 export type UserRole = 'user' | 'vendor' | 'admin';
 export type VendorStatus = 'pending' | 'approved' | 'rejected';
 export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'checked_out' | 'no_show';
-export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
+export type PaymentStatus = 'pending' | 'reserved_not_paid' | 'paid' | 'failed' | 'refunded';
 export type HotelApprovalStatus = 'pending' | 'approved' | 'rejected';
 
 export interface HotelRoom {
@@ -54,8 +54,12 @@ export interface BookingRow {
   rooms: number;
   total_price: number;
   payment_status: PaymentStatus;
+  is_test: boolean;
   booking_status: BookingStatus;
   payment_method: 'monime' | 'pay_at_hotel';
+  payment_type: 'orange_money' | 'afrimoney' | 'pay_at_hotel';
+  commission: number;
+  commission_status: 'paid' | 'unpaid' | 'not_applicable';
   voucher_code: string | null;
   checked_out_at: string | null;
   vendor_terms_accepted_at: string | null;
@@ -99,6 +103,8 @@ export interface PaymentRow {
   amount: number;
   status: PaymentStatus;
   payment_method: string;
+  test_payment_method?: 'orange' | 'afri' | null;
+  test_phone_number?: string | null;
   provider_reference: string | null;
   provider_session_id?: string | null;
   created_at: string;
@@ -136,12 +142,26 @@ export interface TransactionRow {
   commission_amount: number;
   hotel_payout_amount: number;
   status: string;
+  type: string;
+  amount: number | null;
+  note: string | null;
+  is_test: boolean;
+  released_at: string | null;
   commission_type: 'percentage' | 'fixed_amount';
   commission_value: number;
   currency: 'SLE';
   vendor_payout_status: 'pending' | 'eligible' | 'paid';
   vendor_paid_at: string | null;
   created_at: string;
+}
+
+export interface VendorWalletRow {
+  vendor_id: string;
+  commission_due: number;
+  total_earnings: number;
+  can_receive_bookings: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface PlatformSettingsRow {
@@ -303,6 +323,11 @@ export interface Database {
         Insert: Partial<BookingRow>;
         Update: Partial<BookingRow>;
       };
+      vendor_wallets: {
+        Row: VendorWalletRow;
+        Insert: Partial<VendorWalletRow>;
+        Update: Partial<VendorWalletRow>;
+      };
       favorites: {
         Row: FavoriteRow;
         Insert: Partial<FavoriteRow>;
@@ -391,6 +416,31 @@ export interface Database {
         Insert: Partial<TransactionRow>;
         Update: Partial<TransactionRow>;
       };
+      vendor_commission_payments: {
+        Row: {
+          id: string;
+          vendor_id: string;
+          amount: number;
+          payment_type: 'orange_money' | 'afrimoney';
+          phone_number: string;
+          is_test: boolean;
+          created_at: string;
+        };
+        Insert: Partial<{
+          id: string;
+          vendor_id: string;
+          amount: number;
+          payment_type: 'orange_money' | 'afrimoney';
+          phone_number: string;
+          is_test: boolean;
+        }>;
+        Update: Partial<{
+          amount: number;
+          payment_type: 'orange_money' | 'afrimoney';
+          phone_number: string;
+          is_test: boolean;
+        }>;
+      };
       platform_settings: {
         Row: PlatformSettingsRow;
         Insert: Partial<PlatformSettingsRow>;
@@ -473,6 +523,20 @@ export interface Database {
       vendor_update_booking_status: {
         Args: { p_booking_id: string; p_status: string };
         Returns: BookingRow;
+      };
+      pay_vendor_commission_due: {
+        Args: {
+          p_payment_type: 'orange_money' | 'afrimoney';
+          p_phone_number: string;
+          p_pin: string;
+          p_expected_amount: number;
+        };
+        Returns: {
+          commission_due: number;
+          total_earnings: number;
+          paid_amount: number;
+          is_test: boolean;
+        };
       };
       get_vendor_booking_contact: {
         Args: { p_booking_id: string };

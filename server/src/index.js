@@ -8,6 +8,7 @@ const nodemailer = require('nodemailer');
 const { createClient } = require('@supabase/supabase-js');
 
 dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
+dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env') });
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
@@ -195,11 +196,6 @@ app.post('/api/auth/signup', async (req, res) => {
   const termsVersion = typeof req.body?.termsVersion === 'string' ? req.body.termsVersion : '';
   const paymentPolicyVersion = typeof req.body?.paymentPolicyVersion === 'string' ? req.body.paymentPolicyVersion : '';
   const paymentPolicyAgreed = req.body?.paymentPolicyAgreed === true;
-  const requestedPlanId = req.body?.planId === 'pro' ? 'pro' : 'free';
-  if (role === 'vendor' && req.body?.planId !== undefined && !['free', 'pro'].includes(req.body.planId)) {
-    return res.status(400).json({ ok: false, error: 'Choose a valid vendor plan.' });
-  }
-
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !fullName || password.length < 6) {
     return res.status(400).json({ ok: false, error: 'Enter a valid email, full name, and password of at least six characters.' });
   }
@@ -223,7 +219,6 @@ app.post('/api/auth/signup', async (req, res) => {
           vendor_payment_policy_agreed: true,
           vendor_payment_policy_agreed_at: new Date().toISOString(),
           vendor_payment_policy_version: paymentPolicyVersion,
-          pending_plan_id: requestedPlanId,
         }
       : {}),
   };
@@ -354,11 +349,19 @@ const createResponse = (message, data = {}) => ({ ok: true, message, ...data });
 
 const getSupabaseConfig = () => {
   const url = process.env.SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serviceRoleKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceRoleKey) {
-    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required for booking payments');
+    throw new Error('SUPABASE_URL and SUPABASE_SECRET_KEY are required for booking payments');
   }
   return { url: url.replace(/\/$/, ''), serviceRoleKey };
+};
+
+const getSupabaseAuthApiKey = () => {
+  const apiKey = process.env.SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  if (!apiKey) {
+    throw new Error('SUPABASE_ANON_KEY is required to verify signed-in users');
+  }
+  return apiKey;
 };
 
 const supabaseAdminRequest = async (resource, { method = 'GET', body, prefer } = {}) => {
@@ -376,6 +379,16 @@ const supabaseAdminRequest = async (resource, { method = 'GET', body, prefer } =
   const responseText = await response.text();
   const payload = responseText ? JSON.parse(responseText) : null;
   if (!response.ok) {
+    if (payload?.message === 'Unregistered API key') {
+      throw new Error(
+        'Supabase rejected the backend API key as unregistered. Set SUPABASE_SECRET_KEY in server/.env to an enabled secret key from the same project as SUPABASE_URL, then restart the backend.',
+      );
+    }
+    if (/exp claim timestamp check failed|jwt expired/i.test(payload?.message || '')) {
+      throw new Error(
+        'The Supabase backend key has expired. Update SUPABASE_SECRET_KEY in server/.env with a current sb_secret_ key from the same Supabase project, remove any expired legacy SUPABASE_SERVICE_ROLE_KEY fallback, and restart the backend.',
+      );
+    }
     throw new Error(payload?.message || payload?.hint || 'Supabase request failed');
   }
   return payload;
@@ -388,10 +401,10 @@ const authenticateRequest = async (req) => {
     return null;
   }
 
-  const { url, serviceRoleKey } = getSupabaseConfig();
+  const { url } = getSupabaseConfig();
   const response = await fetch(`${url}/auth/v1/user`, {
     headers: {
-      apikey: serviceRoleKey,
+      apikey: getSupabaseAuthApiKey(),
       Authorization: `Bearer ${accessToken}`,
     },
   });
@@ -407,7 +420,7 @@ const getOwnedBooking = async (bookingId, userId) => {
   }
 
   const rows = await supabaseAdminRequest(
-    `bookings?id=eq.${encodeURIComponent(bookingId)}&user_id=eq.${encodeURIComponent(userId)}&select=id,user_id,total_price,payment_status,booking_status,payment_method,created_at&limit=1`,
+    `bookings?id=eq.${encodeURIComponent(bookingId)}&user_id=eq.${encodeURIComponent(userId)}&select=id,user_id,total_price,payment_status,booking_status,payment_method,created_at,is_test&limit=1`,
   );
   return rows?.[0] ?? null;
 };
@@ -424,61 +437,6 @@ const getPaymentBySessionId = async (sessionId) => {
     `payments?provider_session_id=eq.${encodeURIComponent(sessionId)}&select=id,booking_id,amount,status,provider_reference,provider_session_id,payment_method&limit=1`,
   );
   return rows?.[0] ?? null;
-};
-
-const getVendorPlanPaymentByReference = async (reference) => {
-  const rows = await supabaseAdminRequest(
-    `vendor_plan_payments?provider_reference=eq.${encodeURIComponent(reference)}&select=id,vendor_id,plan_id,amount,status,provider_reference,provider_session_id,checkout_url&limit=1`,
-  );
-  return rows?.[0] ?? null;
-};
-
-const getVendorPlanPaymentBySessionId = async (sessionId) => {
-  const rows = await supabaseAdminRequest(
-    `vendor_plan_payments?provider_session_id=eq.${encodeURIComponent(sessionId)}&select=id,vendor_id,plan_id,amount,status,provider_reference,provider_session_id,checkout_url&limit=1`,
-  );
-  return rows?.[0] ?? null;
-};
-
-const linkVendorPlanPaymentSession = async (reference, sessionId, checkoutUrl) => {
-  const rows = await supabaseAdminRequest(
-    `vendor_plan_payments?provider_reference=eq.${encodeURIComponent(reference)}&provider_session_id=is.null`,
-    {
-      method: 'PATCH',
-      body: { provider_session_id: sessionId, checkout_url: checkoutUrl },
-      prefer: 'return=representation',
-    },
-  );
-  if (!rows?.length) {
-    throw new Error('Monime checkout session could not be linked to the PRO upgrade');
-  }
-  return rows[0];
-};
-
-const updateVendorPlanPaymentStatus = async (reference, status) => {
-  const payment = await getVendorPlanPaymentByReference(reference);
-  if (!payment) {
-    throw new Error('Vendor upgrade payment was not found');
-  }
-  if (payment.status === 'paid' && status !== 'paid') {
-    return payment;
-  }
-
-  const statusGuard = status === 'paid' ? '' : '&status=neq.paid';
-  const rows = await supabaseAdminRequest(
-    `vendor_plan_payments?id=eq.${encodeURIComponent(payment.id)}${statusGuard}`,
-    { method: 'PATCH', body: { status }, prefer: 'return=representation' },
-  );
-  if (!rows?.length && status !== 'paid') {
-    const latestPayment = await getVendorPlanPaymentByReference(reference);
-    if (latestPayment?.status === 'paid') {
-      return latestPayment;
-    }
-  }
-  if (!rows?.length) {
-    throw new Error('Vendor upgrade payment status could not be updated');
-  }
-  return rows[0];
 };
 
 const getMonimeCheckoutState = async (payment) => {
@@ -584,7 +542,7 @@ const updateProviderSessionId = async (reference, sessionId) => {
   return rows[0];
 };
 
-const updatePaymentStatus = async (reference, status) => {
+const updatePaymentStatus = async (reference, status, testDetails) => {
   const payment = await getPaymentByReference(reference);
   if (!payment) {
     throw new Error('Payment record was not found');
@@ -597,7 +555,17 @@ const updatePaymentStatus = async (reference, status) => {
   const statusGuard = status === 'paid' ? '' : '&status=neq.paid';
   const rows = await supabaseAdminRequest(
     `payments?id=eq.${encodeURIComponent(payment.id)}${statusGuard}`,
-    { method: 'PATCH', body: { status }, prefer: 'return=representation' },
+    {
+      method: 'PATCH',
+      body: {
+        status,
+        ...(testDetails ? {
+          test_payment_method: testDetails.method,
+          test_phone_number: testDetails.phone,
+        } : {}),
+      },
+      prefer: 'return=representation',
+    },
   );
   if (!rows?.length && status !== 'paid') {
     const latestPayment = await getPaymentByReference(reference);
@@ -613,10 +581,18 @@ const updatePaymentStatus = async (reference, status) => {
 };
 
 const getMonimeConfig = () => {
+  const mode = String(process.env.MONIME_MODE || '').trim().toUpperCase();
+  if (!['TEST', 'LIVE'].includes(mode)) {
+    throw new Error('Set MONIME_MODE explicitly to TEST or LIVE in server/.env');
+  }
   const accessToken = process.env.MONIME_ACCESS_TOKEN;
   const spaceId = process.env.MONIME_SPACE_ID;
   if (!accessToken || !spaceId) {
     throw new Error('MONIME_ACCESS_TOKEN and MONIME_SPACE_ID are required for Monime payments');
+  }
+  const isTestToken = accessToken.startsWith('mon_test_');
+  if ((mode === 'TEST' && !isTestToken) || (mode === 'LIVE' && isTestToken)) {
+    throw new Error(`MONIME_MODE=${mode} does not match the configured Monime access token`);
   }
   if (!/^spc-/.test(spaceId)) {
     throw new Error('MONIME_SPACE_ID must be a Monime Space ID beginning with spc-');
@@ -624,6 +600,7 @@ const getMonimeConfig = () => {
   return {
     accessToken,
     spaceId,
+    mode,
     currency: String(process.env.MONIME_CURRENCY || 'SLE').toUpperCase(),
     version: process.env.MONIME_API_VERSION || 'caph.2025-08-23',
   };
@@ -666,7 +643,43 @@ app.get('/health', (_req, res) => {
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, status: 'ready', provider: 'monime' });
+  try {
+    const { mode } = getMonimeConfig();
+    return res.json({
+      ok: true,
+      status: 'ready',
+      provider: 'monime',
+      mode,
+      testMode: mode === 'TEST',
+    });
+  } catch (error) {
+    console.error('Monime configuration health check failed:', error);
+    return res.status(503).json({
+      ok: false,
+      status: 'configuration_error',
+      provider: 'monime',
+      error: error instanceof Error ? error.message : 'Monime configuration is invalid',
+    });
+  }
+});
+
+app.get('/api/payments/return', (req, res) => {
+  const { reference, bookingId, status } = req.query;
+  if (
+    typeof reference !== 'string'
+    || typeof bookingId !== 'string'
+    || !/^[0-9a-f-]{36}$/i.test(reference)
+    || !/^[0-9a-f-]{36}$/i.test(bookingId)
+    || !['success', 'cancelled'].includes(status)
+  ) {
+    return res.status(400).send('Invalid payment return details');
+  }
+
+  const appUrl = new URL('hotelmanagement://payment/callback');
+  appUrl.searchParams.set('reference', reference);
+  appUrl.searchParams.set('bookingId', bookingId);
+  appUrl.searchParams.set('status', status);
+  return res.redirect(302, appUrl.toString());
 });
 
 const getPlatformSettings = async () => {
@@ -749,6 +762,58 @@ app.put('/api/admin/settings', async (req, res) => {
   }
 });
 
+app.put('/api/admin/bookings/release-all-test', async (req, res) => {
+  try {
+    const adminId = await requireAdmin(req, res);
+    if (!adminId) return;
+
+    const releases = await supabaseAdminRequest(
+      'rpc/admin_release_all_pending_test_booking_funds',
+      { method: 'POST', body: {} },
+    );
+    return res.json({ ok: true, releases: Array.isArray(releases) ? releases : [] });
+  } catch (error) {
+    console.error('Unable to release pending TEST booking funds:', error);
+    return res.status(500).json({
+      ok: false,
+      error: error instanceof Error ? error.message : 'Unable to release pending TEST booking funds.',
+    });
+  }
+});
+
+app.put('/api/admin/bookings/:id/release', async (req, res) => {
+  const bookingId = typeof req.params.id === 'string' ? req.params.id : '';
+  if (!/^[0-9a-f-]{36}$/i.test(bookingId)) {
+    return res.status(400).json({ ok: false, error: 'A valid booking ID is required.' });
+  }
+
+  try {
+    const adminId = await requireAdmin(req, res);
+    if (!adminId) return;
+
+    const release = await supabaseAdminRequest(
+      'rpc/admin_release_test_booking_funds',
+      { method: 'POST', body: { p_booking_id: bookingId } },
+    );
+    return res.json({ ok: true, release });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unable to release TEST booking funds.';
+    console.error('Unable to release TEST booking funds:', message);
+    if (message.includes('Already released')) {
+      return res.status(409).json({ ok: false, error: 'Already released' });
+    }
+    if (
+      message.includes('Only Le 1 TEST bookings')
+      || message.includes('Complete the TEST payment')
+      || message.includes('No pending vendor earnings')
+      || message.includes('Cancelled or no-show bookings')
+    ) {
+      return res.status(409).json({ ok: false, error: message });
+    }
+    return res.status(500).json({ ok: false, error: message });
+  }
+});
+
 const escapePdfText = (value) => value
   .replaceAll('\\', '\\\\')
   .replaceAll('(', '\\(')
@@ -772,32 +837,22 @@ const wrapPdfText = (value, maxLength = 88) => {
   return lines;
 };
 
-const buildVendorPaymentPdf = (settings) => {
+const buildVendorCommissionPdf = () => {
   const total = 1_000_000;
-  const commission = settings.commission_type === 'fixed_amount'
-    ? Math.min(total, Number(settings.commission_value))
-    : Math.round(total * Number(settings.commission_value) / 100);
-  const vendorPayout = total - commission;
-  const rateDescription = settings.commission_type === 'fixed_amount'
-    ? `a flat ${settings.currency} ${Number(settings.commission_value).toLocaleString('en-US')} per paid booking`
-    : `${Number(settings.commission_value)}% of each paid booking`;
   const contentLines = [
-    { text: 'How Our Commission System Works', font: 'F2', size: 19, gap: 27 },
-    { text: 'SL Stay Partner Payment Guide | Currency: Sierra Leonean leones (SLE)', font: 'F1', size: 10, gap: 22 },
-    { text: 'Section 1: Free to List', font: 'F2', size: 12, gap: 17 },
-    { text: 'There is no listing fee to add a property. Vendor plans may change listing limits, but they do not change the platform commission.', font: 'F1', size: 10 },
-    { text: 'Section 2: Commission on Paid Bookings', font: 'F2', size: 12, gap: 17 },
-    { text: `The current platform commission is ${rateDescription}. It is charged only when a booking payment is received.`, font: 'F1', size: 10 },
-    { text: 'The current rate is set by the platform administrator and may change. The rate in this document is current at the time it is generated.', font: 'F1', size: 10 },
-    { text: 'Section 3: When and How You Get Paid', font: 'F2', size: 12, gap: 17 },
-    { text: 'After the guest checks out, the vendor share becomes eligible for payout. Transfers are processed manually and the amount is shown in your earnings history.', font: 'F1', size: 10 },
-    { text: 'Section 4: No Bypass Policy', font: 'F2', size: 12, gap: 17 },
+    { text: 'Vendor Commission and Payout Policy', font: 'F2', size: 19, gap: 27 },
+    { text: 'SL Stay Partner Guide | Currency: Sierra Leonean leones (SLE)', font: 'F1', size: 10, gap: 22 },
+    { text: 'Section 1: One Platform Commission', font: 'F2', size: 12, gap: 17 },
+    { text: 'The same platform commission rules apply to every vendor and property. The administrator sets the commission as either a percentage or a fixed fee.', font: 'F1', size: 10 },
+    { text: 'The applicable rate or fee is displayed before a guest completes payment. The platform may update its rate; the rate shown at payment applies to that booking.', font: 'F1', size: 10 },
+    { text: 'Section 2: When Commission Applies', font: 'F2', size: 12, gap: 17 },
+    { text: 'Commission is recorded only for paid bookings. For a percentage rate, it is calculated from the booking total. For a fixed fee, it is deducted from the booking total, up to that total.', font: 'F1', size: 10 },
+    { text: 'Section 3: Example Calculation', font: 'F2', size: 12, gap: 17 },
+    { text: `Example only: at a 15% commission, a Le ${total.toLocaleString('en-US')} paid booking has a Le 150,000 commission and a Le 850,000 vendor share. Actual amounts depend on the rate or fee displayed for that booking.`, font: 'F1', size: 10 },
+    { text: 'Section 4: When and How You Get Paid', font: 'F2', size: 12, gap: 17 },
+    { text: 'After the guest checks out, the vendor share becomes eligible for payout. Transfers are processed manually. Earnings and withdrawal availability are shown in your vendor dashboard.', font: 'F1', size: 10 },
+    { text: 'Section 5: Keep Bookings on SL Stay', font: 'F2', size: 12, gap: 17 },
     { text: 'Guest and vendor contact details are protected before a booking is paid or confirmed. Keep reservations and payments on SL Stay so bookings remain protected, recorded, and eligible for support.', font: 'F1', size: 10 },
-    { text: 'Section 5: Featured Listings', font: 'F2', size: 12, gap: 17 },
-    { text: 'Featured listing options are coming soon. Any paid promotion will be clearly described before it is offered.', font: 'F1', size: 10 },
-    { text: 'Section 6: Example', font: 'F2', size: 12, gap: 17 },
-    { text: `Customer pays Le ${total.toLocaleString('en-US')} - Admin gets Le ${commission.toLocaleString('en-US')} - You get Le ${vendorPayout.toLocaleString('en-US')}.`, font: 'F1', size: 10 },
-    { text: 'This example uses the current platform setting. The actual commission and payout are calculated from each booking total.', font: 'F1', size: 10 },
   ];
 
   let y = 744;
@@ -833,19 +888,13 @@ const buildVendorPaymentPdf = (settings) => {
   return Buffer.from(pdf, 'ascii');
 };
 
-app.get('/docs/vendor-payment-system.pdf', async (_req, res) => {
-  try {
-    const settings = await getPlatformSettings();
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': 'inline; filename="vendor-payment-system.pdf"',
-      'Cache-Control': 'no-store',
-    });
-    return res.send(buildVendorPaymentPdf(settings));
-  } catch (error) {
-    console.error('Unable to generate vendor payment policy PDF:', error);
-    return res.status(500).json({ ok: false, error: 'Unable to generate the payment policy document.' });
-  }
+app.get(['/docs/vendor-commission-policy.pdf', '/docs/vendor-payment-system.pdf'], (_req, res) => {
+  res.set({
+    'Content-Type': 'application/pdf',
+    'Content-Disposition': 'inline; filename="vendor-commission-policy.pdf"',
+    'Cache-Control': 'no-store',
+  });
+  return res.send(buildVendorCommissionPdf());
 });
 
 app.post('/api/payments/create', async (req, res) => {
@@ -866,10 +915,20 @@ app.post('/api/payments/create', async (req, res) => {
     if (booking.payment_method !== 'monime') {
       return res.status(409).json({ ok: false, error: 'This booking is set to pay at the hotel.' });
     }
-    if (['cancelled', 'completed', 'checked_out', 'no_show'].includes(booking.booking_status)) {
+    const isTestToken = process.env.MONIME_ACCESS_TOKEN?.startsWith('mon_test_') === true;
+    const canRecoverFailedTestBooking = isTestToken
+      && booking.payment_status === 'failed'
+      && booking.booking_status === 'cancelled';
+    if (
+      ['cancelled', 'completed', 'checked_out', 'no_show'].includes(booking.booking_status)
+      && !canRecoverFailedTestBooking
+    ) {
       return res.status(409).json({ ok: false, error: 'Payment is not available for this booking' });
     }
-    if (booking.payment_status === 'failed' || booking.payment_status === 'refunded') {
+    if (
+      (booking.payment_status === 'failed' || booking.payment_status === 'refunded')
+      && !canRecoverFailedTestBooking
+    ) {
       return res.status(409).json({ ok: false, error: 'This booking hold was released after payment failed. Create a new booking to check availability again.' });
     }
 
@@ -879,6 +938,33 @@ app.post('/api/payments/create', async (req, res) => {
     }
 
     const amount = Number(booking.total_price);
+    if (isTestToken) {
+      // Test tokens cannot use Checkout Sessions; live tokens continue through the real Monime checkout below.
+      const reference = await supabaseAdminRequest('rpc/prepare_monime_test_payment', {
+        method: 'POST',
+        body: {
+          p_booking_id: booking.id,
+          p_user_id: user.id,
+          p_reference: crypto.randomUUID(),
+        },
+      });
+
+      return res.status(201).json(
+        createResponse('Test payment simulation ready', {
+          success: true,
+          simulated: true,
+          status: 'pending_test',
+          amount: 1,
+          currency: 'SLE',
+          pin: '1234',
+          bookingId: booking.id,
+          reference,
+          provider: 'monime',
+          mode: 'TEST',
+        }),
+      );
+    }
+
     if (!Number.isFinite(amount) || amount <= 0) {
       return res.status(400).json({ ok: false, error: 'Booking amount must be greater than zero' });
     }
@@ -905,14 +991,25 @@ app.post('/api/payments/create', async (req, res) => {
     });
 
     try {
-      const callbackBase = process.env.PAYMENT_CALLBACK_URL || 'hotelmanagement://payment/callback';
+      const callbackBase = process.env.PAYMENT_CALLBACK_URL;
+      if (!callbackBase) {
+        throw new Error('Set PAYMENT_CALLBACK_URL to the public HTTPS /api/payments/return endpoint before accepting Monime payments');
+      }
+      let callbackEndpoint;
+      try {
+        callbackEndpoint = new URL(callbackBase);
+      } catch (_error) {
+        throw new Error('PAYMENT_CALLBACK_URL must be a valid public HTTPS URL');
+      }
+      if (callbackEndpoint.protocol !== 'https:') {
+        throw new Error('PAYMENT_CALLBACK_URL must use HTTPS');
+      }
       const callbackUrl = (status) => {
-        const query = new URLSearchParams({
-          reference,
-          bookingId: booking.id,
-          status,
-        });
-        return `${callbackBase}${callbackBase.includes('?') ? '&' : '?'}${query.toString()}`;
+        const url = new URL(callbackEndpoint);
+        url.searchParams.set('reference', reference);
+        url.searchParams.set('bookingId', booking.id);
+        url.searchParams.set('status', status);
+        return url.toString();
       };
       const sessionResponse = await monimeRequest('checkout-sessions', {
         method: 'POST',
@@ -967,6 +1064,7 @@ app.post('/api/payments/create', async (req, res) => {
         bookingId: booking.id,
         reference,
         provider,
+        mode: getMonimeConfig().mode,
         authorization_url: authorizationUrl,
       }),
     );
@@ -980,193 +1078,6 @@ app.post('/api/payments/create', async (req, res) => {
   }
 });
 
-app.post('/api/vendor/upgrade', async (req, res) => {
-  try {
-    const user = await authenticateRequest(req);
-    if (!user?.id) {
-      return res.status(401).json({ ok: false, error: 'Sign in is required to upgrade your vendor plan' });
-    }
-
-    const vendors = await supabaseAdminRequest(
-      `users?id=eq.${encodeURIComponent(user.id)}&select=id,role,vendor_status,disabled,plan_id&limit=1`,
-    );
-    const vendor = vendors?.[0];
-    if (!vendor || vendor.role !== 'vendor' || vendor.disabled || vendor.vendor_status !== 'approved') {
-      return res.status(403).json({ ok: false, error: 'An active, approved vendor account is required to upgrade' });
-    }
-    if (vendor.plan_id === 'pro') {
-      return res.status(409).json({ ok: false, error: 'This vendor already has the PRO plan' });
-    }
-
-    const pendingPayments = await supabaseAdminRequest(
-      `vendor_plan_payments?vendor_id=eq.${encodeURIComponent(user.id)}&status=eq.pending&select=id,vendor_id,plan_id,amount,status,provider_reference,provider_session_id,checkout_url&limit=1`,
-    );
-    const pendingPayment = pendingPayments?.[0];
-    if (pendingPayment?.provider_session_id) {
-      const { paymentStatus } = await getMonimeCheckoutState(pendingPayment);
-      if (paymentStatus === 'pending') {
-        if (typeof pendingPayment.checkout_url !== 'string' || !pendingPayment.checkout_url) {
-          throw new Error('The pending Monime PRO upgrade does not have a checkout URL');
-        }
-        return res.status(200).json({
-          ok: true,
-          success: true,
-          reference: pendingPayment.provider_reference,
-          authorization_url: pendingPayment.checkout_url,
-        });
-      }
-      await updateVendorPlanPaymentStatus(pendingPayment.provider_reference, paymentStatus);
-      if (paymentStatus === 'paid') {
-        return res.status(409).json({ ok: false, error: 'The PRO upgrade was already completed. Refresh your dashboard.' });
-      }
-    } else if (pendingPayment) {
-      return res.status(409).json({
-        ok: false,
-        error: 'The PRO upgrade checkout is still being initialized. Try again shortly.',
-      });
-    }
-
-    const plans = await supabaseAdminRequest(
-      'vendor_plans?id=eq.pro&select=id,price&limit=1',
-    );
-    const plan = plans?.[0];
-    const amount = Number(plan?.price);
-    if (!plan || !Number.isFinite(amount) || amount !== 100) {
-      throw new Error('The PRO plan price is not configured correctly');
-    }
-
-    const { currency } = getMonimeConfig();
-    if (currency !== 'SLE') {
-      return res.status(500).json({ ok: false, error: 'Monime Checkout currently requires MONIME_CURRENCY=SLE' });
-    }
-
-    const reference = crypto.randomUUID();
-    await supabaseAdminRequest('vendor_plan_payments', {
-      method: 'POST',
-      body: {
-        vendor_id: user.id,
-        plan_id: 'pro',
-        amount,
-        status: 'pending',
-        provider_reference: reference,
-      },
-      prefer: 'return=minimal',
-    });
-
-    try {
-      const callbackBase = process.env.PAYMENT_CALLBACK_URL || 'hotelmanagement://payment/callback';
-      const callbackUrl = (status) => {
-        const query = new URLSearchParams({
-          reference,
-          purchaseType: 'vendor_upgrade',
-          status,
-        });
-        return `${callbackBase}${callbackBase.includes('?') ? '&' : '?'}${query.toString()}`;
-      };
-      const sessionResponse = await monimeRequest('checkout-sessions', {
-        method: 'POST',
-        idempotencyKey: reference,
-        body: {
-          name: 'HM Hotel Vendor PRO plan',
-          description: 'One-time vendor plan upgrade',
-          reference,
-          callbackState: reference,
-          successUrl: callbackUrl('success'),
-          cancelUrl: callbackUrl('cancelled'),
-          lineItems: [
-            {
-              type: 'custom',
-              name: 'PRO vendor plan',
-              description: 'One-time upgrade to the PRO vendor plan',
-              reference,
-              price: { currency, value: Math.round(amount * 100) },
-              quantity: 1,
-            },
-          ],
-        },
-      });
-      const checkoutSession = sessionResponse?.result;
-      if (
-        typeof checkoutSession?.id !== 'string'
-        || typeof checkoutSession?.redirectUrl !== 'string'
-        || !checkoutSession.redirectUrl
-      ) {
-        throw new Error('Monime did not return a checkout URL and session ID');
-      }
-
-      await linkVendorPlanPaymentSession(reference, checkoutSession.id, checkoutSession.redirectUrl);
-      return res.status(201).json({
-        ok: true,
-        success: true,
-        reference,
-        authorization_url: checkoutSession.redirectUrl,
-      });
-    } catch (error) {
-      try {
-        await updateVendorPlanPaymentStatus(reference, 'failed');
-      } catch (statusError) {
-        console.error('Unable to mark failed Monime PRO upgrade initialization:', statusError);
-      }
-      throw error;
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unable to initialize the PRO upgrade';
-    console.error('Unable to initialize vendor upgrade:', message);
-    const statusCode = /vendor_plan_payments_one_pending_per_vendor/.test(message) ? 409 : 500;
-    return res.status(statusCode).json({ ok: false, error: message });
-  }
-});
-
-app.post('/api/vendor/upgrade/verify', async (req, res) => {
-  const reference = typeof req.body?.reference === 'string' ? req.body.reference : '';
-  if (!reference) {
-    return res.status(400).json({ ok: false, error: 'reference is required' });
-  }
-
-  try {
-    const user = await authenticateRequest(req);
-    if (!user?.id) {
-      return res.status(401).json({ ok: false, error: 'Sign in is required to verify the PRO upgrade' });
-    }
-    const payment = await getVendorPlanPaymentByReference(reference);
-    if (!payment) {
-      return res.status(404).json({ ok: false, error: 'PRO upgrade payment reference was not found' });
-    }
-    if (payment.vendor_id !== user.id) {
-      return res.status(403).json({ ok: false, error: 'This PRO upgrade payment does not belong to your account' });
-    }
-    if (payment.status === 'paid') {
-      return res.json({
-        ok: true,
-        success: true,
-        verified: true,
-        data: { reference, status: 'success' },
-      });
-    }
-
-    const { paymentStatus, providerStatus } = await getMonimeCheckoutState(payment);
-    if (paymentStatus !== 'pending' && payment.status !== paymentStatus) {
-      await updateVendorPlanPaymentStatus(reference, paymentStatus);
-    }
-    return res.json({
-      ok: true,
-      success: true,
-      verified: paymentStatus === 'paid',
-      data: {
-        reference,
-        status: paymentStatus === 'paid' ? 'success' : paymentStatus,
-        providerStatus,
-      },
-    });
-  } catch (error) {
-    console.error('Unable to verify vendor upgrade:', error);
-    return res.status(502).json({
-      ok: false,
-      error: error instanceof Error ? error.message : 'Unable to verify the PRO upgrade',
-    });
-  }
-});
-
 app.post('/api/payments/verify', async (req, res) => {
   const reference = typeof req.body?.reference === 'string' ? req.body.reference : '';
 
@@ -1176,6 +1087,7 @@ app.post('/api/payments/verify', async (req, res) => {
 
   let user;
   let payment;
+  let booking;
   try {
     user = await authenticateRequest(req);
     if (!user?.id) {
@@ -1185,7 +1097,7 @@ app.post('/api/payments/verify', async (req, res) => {
     if (!payment) {
       return res.status(404).json({ ok: false, error: 'Payment reference was not found' });
     }
-    const booking = await getOwnedBooking(payment.booking_id, user.id);
+    booking = await getOwnedBooking(payment.booking_id, user.id);
     if (!booking) {
       return res.status(403).json({ ok: false, error: 'This payment does not belong to your account' });
     }
@@ -1195,6 +1107,66 @@ app.post('/api/payments/verify', async (req, res) => {
       ok: false,
       error: error instanceof Error ? error.message : 'Unable to load payment',
     });
+  }
+
+  const isTestToken = process.env.MONIME_ACCESS_TOKEN?.startsWith('mon_test_') === true;
+  const isSimulatedTestPayment = payment.payment_method === 'monime'
+    && isTestToken
+    && booking.is_test
+    && Number(booking.total_price) === 1
+    && Number(payment.amount) === 1
+    && !payment.provider_session_id;
+  if (isSimulatedTestPayment) {
+    if (payment.status === 'paid' && booking.payment_status === 'paid') {
+      return res.json(
+        createResponse('Test payment simulation was already confirmed', {
+          success: true,
+          verified: true,
+          simulated: true,
+          data: { reference, status: 'success', amount: 1, currency: 'SLE' },
+        }),
+      );
+    }
+    if (payment.status !== 'pending' || booking.payment_status !== 'pending') {
+      return res.status(409).json({ ok: false, error: 'This TEST payment is no longer pending.' });
+    }
+    if (req.body?.pin !== '1234') {
+      return res.status(400).json({ ok: false, error: 'Enter the TEST PIN 1234 to simulate payment.' });
+    }
+    const testMethod = req.body?.method;
+    const testPhone = typeof req.body?.phone === 'string' ? req.body.phone.trim() : '';
+    if (!['orange', 'afri'].includes(testMethod) || !/^[0-9+]{8,18}$/.test(testPhone)) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Choose Orange Money or Afrimoney and enter a valid TEST phone number.',
+      });
+    }
+
+    try {
+      await updatePaymentStatus(reference, 'paid', { method: testMethod, phone: testPhone });
+    } catch (error) {
+      console.error('Unable to record simulated Monime payment:', error);
+      return res.status(500).json({
+        ok: false,
+        error: error instanceof Error ? error.message : 'Unable to record simulated payment',
+      });
+    }
+
+    return res.json(
+      createResponse('Test payment simulated successfully', {
+        success: true,
+        verified: true,
+        simulated: true,
+        data: {
+          reference,
+          status: 'success',
+          amount: 1,
+          currency: 'SLE',
+          method: testMethod,
+          phone: testPhone,
+        },
+      }),
+    );
   }
 
   if (payment.payment_method === 'monime') {
@@ -1210,7 +1182,45 @@ app.post('/api/payments/verify', async (req, res) => {
       }
       const { paymentStatus, providerStatus } = await getMonimeCheckoutState(payment);
 
-      if (payment.status !== paymentStatus && paymentStatus !== 'pending') {
+      const { mode } = getMonimeConfig();
+      if (paymentStatus === 'paid' && mode === 'TEST') {
+        await supabaseAdminRequest('rpc/mark_monime_test_payment_paid', {
+          method: 'POST',
+          body: { p_reference: reference },
+        });
+        console.log('Test mode - bypassing webhook, updated vendor directly');
+        return res.json(
+          createResponse('Test payment verified and recorded', {
+            success: true,
+            verified: true,
+            data: {
+              reference,
+              status: 'success',
+              providerStatus,
+              mode: 'TEST',
+              amount: Math.round(Number(payment.amount) * 100),
+              currency: process.env.MONIME_CURRENCY || 'SLE',
+            },
+          }),
+        );
+      }
+
+      if (paymentStatus === 'paid' && mode === 'LIVE') {
+        return res.json(
+          createResponse('Waiting for webhook', {
+            success: true,
+            verified: false,
+            data: {
+              reference,
+              status: 'pending',
+              providerStatus,
+              mode: 'LIVE',
+            },
+          }),
+        );
+      }
+
+      if (payment.status !== paymentStatus && paymentStatus !== 'pending' && mode === 'TEST') {
         await updatePaymentStatus(reference, paymentStatus);
       }
 
@@ -1240,6 +1250,17 @@ app.post('/api/payments/verify', async (req, res) => {
 });
 
 app.post('/api/payments/monime-webhook', async (req, res) => {
+  let mode;
+  try {
+    ({ mode } = getMonimeConfig());
+  } catch (error) {
+    console.error('Unable to determine Monime mode for webhook:', error);
+    return res.status(500).json({ ok: false, error: 'Monime payment mode is not configured correctly' });
+  }
+  if (mode === 'TEST') {
+    return res.status(200).json({ ok: true, received: true, ignored: true, reason: 'test_mode_verification' });
+  }
+
   const webhookSecret = process.env.MONIME_WEBHOOK_SECRET;
   const rawBody = req.body;
   if (!webhookSecret) {
@@ -1275,32 +1296,26 @@ app.post('/api/payments/monime-webhook', async (req, res) => {
 
   try {
     const payment = await getPaymentBySessionId(sessionId);
-    const vendorPlanPayment = payment ? null : await getVendorPlanPaymentBySessionId(sessionId);
-    const checkoutPayment = payment ?? vendorPlanPayment;
-    if (!checkoutPayment) {
+    if (!payment) {
       return res.status(503).json({ ok: false, error: 'Payment for this Monime checkout session is not linked yet' });
     }
 
-    const { paymentStatus } = await getMonimeCheckoutState(checkoutPayment);
+    const { paymentStatus } = await getMonimeCheckoutState(payment);
     const eventRequiresTerminalState = eventName === 'checkout_session.completed'
       ? paymentStatus !== 'paid'
       : ['checkout_session.cancelled', 'checkout_session.expired'].includes(eventName) && paymentStatus === 'pending';
     if (eventRequiresTerminalState) {
       return res.status(503).json({ ok: false, error: 'Monime has not finalized this checkout session yet' });
     }
-    if (paymentStatus !== 'pending' && checkoutPayment.status !== paymentStatus) {
-      if (payment) {
-        await updatePaymentStatus(payment.provider_reference, paymentStatus);
-      } else if (vendorPlanPayment) {
-        await updateVendorPlanPaymentStatus(vendorPlanPayment.provider_reference, paymentStatus);
-      }
+    if (paymentStatus !== 'pending' && payment.status !== paymentStatus) {
+      await updatePaymentStatus(payment.provider_reference, paymentStatus);
     }
 
     return res.status(200).json({
       ok: true,
       received: true,
       event: eventName,
-      paymentType: vendorPlanPayment ? 'vendor_upgrade' : 'booking',
+      paymentType: 'booking',
     });
   } catch (error) {
     console.error('Unable to process Monime webhook:', error);

@@ -7,8 +7,6 @@ export interface AdminUser {
   email: string;
   role: UserRole;
   vendor_status: string;
-  plan_id: 'free' | 'pro';
-  pending_plan_id: 'free' | 'pro';
   disabled: boolean;
   business_name: string | null;
   business_description: string | null;
@@ -64,9 +62,15 @@ export interface AdminBooking {
   total_price: number;
   payment_status: string;
   booking_status: BookingStatus;
+  is_test: boolean;
+  payment_method: 'monime' | 'pay_at_hotel';
+  payment_type: 'orange_money' | 'afrimoney' | 'pay_at_hotel';
+  commission: number;
+  commission_status: 'paid' | 'unpaid' | 'not_applicable';
   created_at: string;
   users: { fullname: string | null; email: string } | null;
   hotels: { name: string } | null;
+  transaction?: { status: string; vendor_payout_status: string } | null;
 }
 
 export interface AdminActivity {
@@ -231,7 +235,7 @@ export const reviewAdminHotel = async (
 export const loadAdminVendors = async (): Promise<AdminUser[]> => {
   const { data, error } = await supabase
     .from('users')
-    .select('id, fullname, email, role, vendor_status, plan_id, pending_plan_id, disabled, business_name, business_description, business_document_url, vendor_terms_accepted_at, vendor_terms_version, vendor_payment_policy_agreed, vendor_payment_policy_agreed_at, vendor_payment_policy_version, no_show_count, booking_risk_flagged_at, created_at, vendor_documents(id, document_type, file_url, status, created_at)')
+    .select('id, fullname, email, role, vendor_status, disabled, business_name, business_description, business_document_url, vendor_terms_accepted_at, vendor_terms_version, vendor_payment_policy_agreed, vendor_payment_policy_agreed_at, vendor_payment_policy_version, no_show_count, booking_risk_flagged_at, created_at, vendor_documents(id, document_type, file_url, status, created_at)')
     .eq('role', 'vendor')
     .order('created_at', { ascending: false });
   return throwIfError(data ?? [], error) as AdminUser[];
@@ -241,7 +245,7 @@ export const loadAdminUsers = async (search: string): Promise<AdminUser[]> => {
   const selectUsers = () =>
     supabase
       .from('users')
-      .select('id, fullname, email, role, vendor_status, plan_id, pending_plan_id, disabled, business_name, business_description, business_document_url, vendor_terms_accepted_at, vendor_terms_version, vendor_payment_policy_agreed, vendor_payment_policy_agreed_at, vendor_payment_policy_version, no_show_count, booking_risk_flagged_at, created_at, vendor_documents(id, document_type, file_url, status, created_at)')
+      .select('id, fullname, email, role, vendor_status, disabled, business_name, business_description, business_document_url, vendor_terms_accepted_at, vendor_terms_version, vendor_payment_policy_agreed, vendor_payment_policy_agreed_at, vendor_payment_policy_version, no_show_count, booking_risk_flagged_at, created_at, vendor_documents(id, document_type, file_url, status, created_at)')
       .order('created_at', { ascending: false })
       .limit(100);
   const term = search.trim();
@@ -275,17 +279,36 @@ export const updateAdminUser = async (
   }
 };
 
-export const loadAdminBookings = async (status: BookingStatus | 'all'): Promise<AdminBooking[]> => {
+export const loadAdminBookings = async (status: BookingStatus | 'all' | 'unpaid_commissions'): Promise<AdminBooking[]> => {
   let query = supabase
     .from('bookings')
-    .select('id, user_id, hotel_id, check_in, check_out, guests, rooms, total_price, payment_status, booking_status, created_at, users(fullname, email), hotels(name)')
+    .select('id, user_id, hotel_id, check_in, check_out, guests, rooms, total_price, payment_status, booking_status, is_test, payment_method, payment_type, commission, commission_status, created_at, users(fullname, email), hotels(name)')
     .order('created_at', { ascending: false })
     .limit(200);
-  if (status !== 'all') {
+  if (status === 'unpaid_commissions') {
+    query = query.eq('commission_status', 'unpaid');
+  } else if (status !== 'all') {
     query = query.eq('booking_status', status);
   }
   const { data, error } = await query;
-  return throwIfError(data ?? [], error) as AdminBooking[];
+  const bookings = throwIfError(data ?? [], error) as AdminBooking[];
+  if (bookings.length === 0) return bookings;
+
+  const { data: transactions, error: transactionError } = await supabase
+    .from('transactions')
+    .select('booking_id, status, vendor_payout_status')
+    .in('booking_id', bookings.map((booking) => booking.id));
+  const transactionRows = throwIfError(transactions ?? [], transactionError) as {
+    booking_id: string;
+    status: string;
+    vendor_payout_status: string;
+  }[];
+  const transactionsByBooking = new Map(transactionRows.map((transaction) => [transaction.booking_id, transaction]));
+
+  return bookings.map((booking) => ({
+    ...booking,
+    transaction: transactionsByBooking.get(booking.id) ?? null,
+  }));
 };
 
 export const loadAdminReport = async (periodDays: number): Promise<AdminReport> => {
@@ -294,7 +317,7 @@ export const loadAdminReport = async (periodDays: number): Promise<AdminReport> 
   const [bookings, transactions, users] = await Promise.all([
     supabase
       .from('bookings')
-      .select('id, user_id, hotel_id, check_in, check_out, guests, rooms, total_price, payment_status, booking_status, created_at, users(fullname, email), hotels(name)')
+      .select('id, user_id, hotel_id, check_in, check_out, guests, rooms, total_price, payment_status, booking_status, is_test, payment_method, payment_type, commission, commission_status, created_at, users(fullname, email), hotels(name)')
       .gte('created_at', since)
       .order('created_at', { ascending: false }),
     supabase.from('transactions').select('total_amount, commission_amount, created_at').gte('created_at', since),

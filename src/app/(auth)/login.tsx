@@ -1,11 +1,14 @@
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MobileAuthHeader from '@/components/auth/MobileAuthHeader';
+import MobileAuthHero from '@/components/auth/MobileAuthHero';
 import { useAuthStore } from '@/store/auth.store';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{
     bookingHotelId?: string | string[];
     vendorApplicationIncomplete?: string | string[];
@@ -15,8 +18,8 @@ export default function LoginScreen() {
   const vendorApplicationIncomplete = params.vendorApplicationIncomplete === 'true';
   const vendorAudience = params.audience === 'vendor';
   const signIn = useAuthStore((state: { signIn: (email: string, password: string) => Promise<void> }) => state.signIn);
-  const [email, setEmail] = useState('customer@hotelportal.local');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
@@ -36,7 +39,7 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.screen}>
-      <MobileAuthHeader />
+      {Platform.OS === 'web' ? <MobileAuthHeader /> : <MobileAuthHero />}
       {vendorAudience && Platform.OS !== 'web' ? (
         <View style={styles.mobileVendorNotice}>
           <Text style={styles.mobileVendorNoticeTitle}>Partner sign in is available on web</Text>
@@ -44,12 +47,19 @@ export default function LoginScreen() {
         </View>
       ) : (
       <ScrollView
-        contentContainerStyle={[styles.container, Platform.OS === 'web' && styles.webContainer]}
+        style={Platform.OS !== 'web' ? styles.mobileScroll : undefined}
+        contentContainerStyle={StyleSheet.flatten([
+          styles.container,
+          Platform.OS === 'web' ? styles.webContainer : styles.mobileContainer,
+          Platform.OS !== 'web' ? { paddingTop: 220 + insets.top } : undefined,
+        ])}
         keyboardShouldPersistTaps="handled"
       >
-        {Platform.OS === 'web' ? (
-          <Text style={styles.title}>{vendorAudience ? 'Partner sign in' : 'Welcome back'}</Text>
-        ) : null}
+        <Text style={StyleSheet.flatten([styles.title, Platform.OS !== 'web' && styles.mobileTitle])}>
+          {Platform.OS === 'web'
+            ? vendorAudience ? 'Partner sign in' : 'Welcome back'
+            : 'Sign in'}
+        </Text>
         <Text style={styles.subtitle}>
           {vendorAudience ? 'Sign in to manage your property and bookings.' : 'Sign in to continue'}
         </Text>
@@ -60,7 +70,16 @@ export default function LoginScreen() {
         ) : null}
 
         <Text style={styles.label}>Email</Text>
-        <TextInput value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="Email" style={styles.input} />
+        <TextInput
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          autoComplete="email"
+          placeholder="name@example.com"
+          placeholderTextColor="#94A3A8"
+          style={StyleSheet.flatten([styles.input, Platform.OS !== 'web' && styles.mobileInput])}
+        />
         <View style={styles.passwordLabelRow}>
           <Text style={styles.label}>Password</Text>
           <Link
@@ -72,10 +91,22 @@ export default function LoginScreen() {
             Forgot password?
           </Link>
         </View>
-        <TextInput value={password} onChangeText={setPassword} secureTextEntry placeholder="Password" style={styles.input} />
+        <TextInput
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          autoComplete="current-password"
+          placeholder="Enter your password"
+          placeholderTextColor="#94A3A8"
+          style={StyleSheet.flatten([styles.input, Platform.OS !== 'web' && styles.mobileInput])}
+        />
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <TouchableOpacity style={styles.primaryButton} onPress={() => void submit()}>
+        <TouchableOpacity
+          style={StyleSheet.flatten([styles.primaryButton, Platform.OS !== 'web' && styles.mobilePrimaryButton])}
+          onPress={() => void submit()}
+          accessibilityRole="button"
+        >
           <Text style={styles.primaryButtonText}>Log in</Text>
         </TouchableOpacity>
 
@@ -83,8 +114,10 @@ export default function LoginScreen() {
           href={bookingHotelId ? { pathname: '/register', params: { bookingHotelId } } : '/register'}
           asChild
         >
-          <TouchableOpacity style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>Create account</Text>
+          <TouchableOpacity style={StyleSheet.flatten([styles.secondaryButton, Platform.OS !== 'web' && styles.mobileSecondaryButton])}>
+            <Text style={StyleSheet.flatten([styles.secondaryButtonText, Platform.OS !== 'web' && styles.mobileSecondaryButtonText])}>
+              {Platform.OS === 'web' ? 'Create account' : "Don't have an account? Sign up"}
+            </Text>
           </TouchableOpacity>
         </Link>
 
@@ -106,7 +139,10 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
+  },
+  mobileScroll: {
+    flex: 1,
   },
   container: {
     flexGrow: 1,
@@ -125,10 +161,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     boxShadow: '0px 8px 26px rgba(25, 56, 73, 0.08)',
   },
+  mobileContainer: {
+    paddingTop: 220,
+    paddingHorizontal: 28,
+    paddingBottom: 36,
+    backgroundColor: 'transparent',
+  },
   title: {
     fontSize: 32,
     fontWeight: '700',
     color: '#0F172A',
+  },
+  mobileTitle: {
+    color: '#17354B',
+    fontSize: 28,
+    fontWeight: '800',
+    marginBottom: 4,
   },
   subtitle: {
     marginTop: 8,
@@ -144,8 +192,22 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
   },
+  mobileInput: {
+    minHeight: 44,
+    paddingHorizontal: 2,
+    paddingVertical: 8,
+    marginBottom: 14,
+    borderColor: '#D5E4E5',
+    borderRadius: 0,
+    borderTopWidth: 0,
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
+    backgroundColor: 'transparent',
+    color: '#17354B',
+    fontSize: 14,
+  },
   label: {
-    color: '#0F172A',
+    color: '#526974',
     fontWeight: '600',
     marginBottom: 6,
   },
@@ -167,6 +229,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 12,
   },
+  mobilePrimaryButton: {
+    minHeight: 48,
+    borderRadius: 10,
+    backgroundColor: '#087E8B',
+    marginTop: 18,
+  },
   primaryButtonText: {
     color: '#FFFFFF',
     fontWeight: '700',
@@ -179,9 +247,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 12,
   },
+  mobileSecondaryButton: {
+    alignSelf: 'center',
+    marginTop: 12,
+    paddingVertical: 10,
+    borderWidth: 0,
+  },
   secondaryButtonText: {
     color: '#0F172A',
     fontWeight: '700',
+  },
+  mobileSecondaryButtonText: {
+    color: '#718397',
+    fontSize: 12,
+    fontWeight: '500',
   },
   vendorLink: {
     alignSelf: 'center',

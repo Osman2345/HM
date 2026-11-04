@@ -166,10 +166,9 @@ export default function AdminVendorsScreen() {
       {notice ? <Text style={styles.notice}>{notice}</Text> : null}
       {!loading && !error && visibleVendors.length === 0 ? <Text style={styles.state}>No vendors match these filters.</Text> : null}
       {!loading && !error && visibleVendors.length ? (
-        <AdminTable minWidth={1280}>
+        <AdminTable minWidth={1180}>
           <AdminTableHeader>
             <AdminTableCell width={235}><Text style={adminTableText.header}>Vendor</Text></AdminTableCell>
-            <AdminTableCell width={100}><Text style={adminTableText.header}>Plan</Text></AdminTableCell>
             <AdminTableCell width={120}><Text style={adminTableText.header}>Status</Text></AdminTableCell>
             <AdminTableCell width={190}><Text style={adminTableText.header}>Documents</Text></AdminTableCell>
             <AdminTableCell width={215}><Text style={adminTableText.header}>Payment policy</Text></AdminTableCell>
@@ -182,10 +181,6 @@ export default function AdminVendorsScreen() {
                 <AdminTableCell width={235}>
                   <Text numberOfLines={1} style={adminTableText.primary}>{vendor.business_name || vendor.fullname || vendor.email}</Text>
                   <Text numberOfLines={1} style={adminTableText.secondary}>{vendor.fullname || 'Name not provided'} · {vendor.email}</Text>
-                </AdminTableCell>
-                <AdminTableCell width={100}>
-                  <Text style={adminTableText.primary}>{vendor.plan_id.toUpperCase()}</Text>
-                  {vendor.pending_plan_id !== vendor.plan_id ? <Text style={adminTableText.secondary}>Selected {vendor.pending_plan_id.toUpperCase()}</Text> : null}
                 </AdminTableCell>
                 <AdminTableCell width={120}>
                   <Text style={[styles.statusBadge, vendor.disabled ? styles.statusDisabled : vendor.vendor_status === 'approved' ? styles.statusApproved : styles.statusPending]}>

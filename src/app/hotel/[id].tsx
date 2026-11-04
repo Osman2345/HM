@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Image, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { invalidateCached, loadCached } from '@/lib/query-cache';
+import HotelDetailSkeleton from '@/components/skeletons/HotelDetailSkeleton';
+import useDelayedLoading from '@/hooks/useDelayedLoading';
 import { useAuthStore } from '@/store/auth.store';
 
 type HotelRow = {
@@ -48,6 +50,7 @@ export default function HotelDetailsScreen() {
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [activeSection, setActiveSection] = useState('overview');
   const [heroIndex, setHeroIndex] = useState(0);
+  const showSkeleton = useDelayedLoading(loading);
   const contentScrollRef = useRef<ScrollView | null>(null);
   const sectionPositions = useRef<Record<string, number>>({});
   const heroIndexRef = useRef(0);
@@ -197,11 +200,7 @@ export default function HotelDetailsScreen() {
   };
 
   if (loading) {
-    return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.center}>Loading hotel…</Text>
-      </View>
-    );
+    return showSkeleton ? <HotelDetailSkeleton /> : <View style={styles.screen} />;
   }
 
   if (error || !hotel) {

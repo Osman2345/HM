@@ -10,6 +10,8 @@ interface VendorBooking {
   booking_status: string;
   payment_status: string;
   payment_method: 'monime' | 'pay_at_hotel';
+  commission: number;
+  commission_status: 'paid' | 'unpaid' | 'not_applicable';
   voucher_code: string | null;
   room_type: string | null;
   check_in: string;
@@ -54,7 +56,7 @@ export default function VendorBookingsScreen() {
       const data = await loadCached(cacheKey, async () => {
         const { data: rows, error: fetchError } = await supabase
           .from('bookings')
-          .select('id, booking_status, payment_status, payment_method, voucher_code, room_type, check_in, check_out, guests, rooms, total_price, created_at, hotels!inner(name, owner_id)')
+          .select('id, booking_status, payment_status, payment_method, commission, commission_status, voucher_code, room_type, check_in, check_out, guests, rooms, total_price, created_at, hotels!inner(name, owner_id)')
           .eq('hotels.owner_id', userId)
           .order('created_at', { ascending: false });
         if (fetchError) throw fetchError;
@@ -148,6 +150,7 @@ export default function VendorBookingsScreen() {
             <Text style={styles.payment}>Payment: {booking.payment_status}</Text>
             <Text style={styles.amount}>{formatMoney(booking.total_price)}</Text>
           </View>
+          <Text style={styles.meta}>Commission: {formatMoney(booking.commission)} · {booking.commission_status}</Text>
           {booking.voucher_code ? <Text style={styles.voucher}>Voucher {booking.voucher_code}</Text> : null}
           {booking.booking_status === 'pending' && booking.payment_method === 'pay_at_hotel' ? (
             <TouchableOpacity style={styles.actionButton} disabled={actionBusyId === booking.id} onPress={() => void updateBookingStatus(booking.id, 'confirmed')} accessibilityRole="button">

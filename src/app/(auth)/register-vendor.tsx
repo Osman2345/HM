@@ -39,7 +39,6 @@ export default function RegisterVendorScreen() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [planId, setPlanId] = useState<'free' | 'pro'>('free');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [hasViewedPaymentDoc, setHasViewedPaymentDoc] = useState(false);
   const [platformSettings, setPlatformSettings] = useState<PlatformSettings | null>(null);
@@ -72,7 +71,6 @@ export default function RegisterVendorScreen() {
       const verification = await signUp(normalizedEmail, password, fullName.trim(), 'vendor', {
         businessName: businessName.trim(),
         termsVersion: vendorTermsVersion,
-        planId,
         paymentPolicyVersion,
       });
 
@@ -112,38 +110,12 @@ export default function RegisterVendorScreen() {
         <Text style={styles.title}>Create your vendor account</Text>
         <Text style={styles.subtitle}>Tell us about your business and verify your property. Your details stay private while we review your application.</Text>
 
-        <Text style={styles.sectionTitle}>Choose your vendor plan</Text>
-        <View style={styles.planRow}>
-          {[
-            { id: 'free' as const, title: 'FREE', price: 'Le 0', description: '1 hotel · Basic listing tools' },
-            { id: 'pro' as const, title: 'PRO', price: 'Le 100 one-time', description: 'Up to 5 hotels · Verified badge' },
-          ].map((plan) => {
-            const selected = planId === plan.id;
-            return (
-              <TouchableOpacity
-                key={plan.id}
-                accessibilityRole="radio"
-                accessibilityState={{ selected }}
-                style={[styles.planCard, selected && styles.planCardSelected]}
-                onPress={() => setPlanId(plan.id)}
-              >
-                {plan.id === 'pro' ? <Text style={styles.recommended}>RECOMMENDED</Text> : null}
-                <Text style={styles.planTitle}>{plan.title}</Text>
-                <Text style={styles.planPrice}>{plan.price}</Text>
-                <Text style={styles.planDescription}>{plan.description}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-        <Text style={styles.helper}>
-          PRO is a one-time payment. You can complete the upgrade after your vendor account is approved.
-        </Text>
         <View style={styles.explanationBox}>
           <Text style={styles.explanationTitle}>Booking commission</Text>
           <Text style={styles.explanationText}>
             {platformSettings
               ? platformSettings.commission_type === 'percentage'
-                ? `A ${platformSettings.commission_value}% platform commission applies to paid bookings for every vendor plan.`
+                ? `A ${platformSettings.commission_value}% platform commission applies to paid bookings.`
                 : `A flat Le ${Number(platformSettings.commission_value).toLocaleString()} platform fee applies to each paid booking.`
               : 'The platform commission is set by the administrator and shown before each booking is paid.'}
             {' '}Payouts are recorded after checkout and transferred manually.
@@ -210,13 +182,13 @@ export default function RegisterVendorScreen() {
 
         <Text style={styles.paymentPolicyPrompt}>Please read how our payment &amp; commission system works:</Text>
         <a
-          href={buildBackendUrl('/docs/vendor-payment-system.pdf')}
+          href={buildBackendUrl('/docs/vendor-commission-policy.pdf')}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => setHasViewedPaymentDoc(true)}
           style={{ color: '#087E8B', fontWeight: 800, marginTop: 6, marginBottom: 13 }}
         >
-          View Payment System PDF
+          View Commission Policy PDF
         </a>
 
         <TouchableOpacity
@@ -354,48 +326,6 @@ const styles = StyleSheet.create({
     color: '#17354B',
     fontSize: 17,
     fontWeight: '800',
-  },
-  planRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 9,
-  },
-  planCard: {
-    flex: 1,
-    minHeight: 126,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#D6E0E2',
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-  },
-  planCardSelected: {
-    borderWidth: 2,
-    borderColor: '#087E8B',
-  },
-  recommended: {
-    color: '#087E8B',
-    fontSize: 8,
-    fontWeight: '900',
-    letterSpacing: 0.7,
-  },
-  planTitle: {
-    marginTop: 5,
-    color: '#17354B',
-    fontSize: 14,
-    fontWeight: '900',
-  },
-  planPrice: {
-    marginTop: 4,
-    color: '#087E8B',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  planDescription: {
-    marginTop: 6,
-    color: '#718397',
-    fontSize: 10,
-    lineHeight: 14,
   },
   explanationBox: {
     marginTop: 4,

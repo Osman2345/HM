@@ -15,6 +15,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { createBackendVendorUpgrade, loadPlatformSettings, type PlatformSettings } from '@/lib/backend';
 import WalletControls from '@/components/finance/WalletControls';
+import VendorCommissionWidget from '@/components/finance/VendorCommissionWidget';
 
 type VendorHotel = {
   id: string;
@@ -35,15 +36,18 @@ type VendorTransaction = {
   total_amount: number;
   commission_amount: number;
   hotel_payout_amount: number;
+  status: string;
   vendor_payout_status: string;
   created_at: string;
+  bookings: { is_test: boolean } | null;
 };
 
 const formatMoney = (amount: number) =>
   new Intl.NumberFormat('en-SL', {
     style: 'currency',
     currency: 'SLE',
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(Number(amount) || 0);
 
 const metrics = [
@@ -106,7 +110,7 @@ export default function VendorDashboardScreen() {
           .single(),
         supabase
           .from('transactions')
-          .select('id, booking_id, total_amount, commission_amount, hotel_payout_amount, vendor_payout_status, created_at')
+          .select('id, booking_id, total_amount, commission_amount, hotel_payout_amount, status, vendor_payout_status, created_at, bookings(is_test)')
           .eq('vendor_id', userId)
           .order('created_at', { ascending: false })
           .limit(20),
@@ -219,6 +223,7 @@ export default function VendorDashboardScreen() {
       </View>
 
       <WalletControls />
+      {userId ? <VendorCommissionWidget vendorId={userId} /> : null}
 
       {loading ? <Text style={styles.state}>Loading your business overview…</Text> : null}
       {error ? (
@@ -237,7 +242,7 @@ export default function VendorDashboardScreen() {
       {!loading && !error ? (
         <>
           <View style={styles.sectionHeading}>
-            <View>
+            <View style={styles.earningsStatus}>
               <Text style={styles.sectionTitle}>Your performance</Text>
               <Text style={styles.sectionSubtitle}>A current snapshot of your account</Text>
             </View>
@@ -418,7 +423,16 @@ export default function VendorDashboardScreen() {
                     <Text style={styles.earningsValue}>{formatMoney(transaction.total_amount)}</Text>
                     <Text style={styles.earningsValue}>{formatMoney(transaction.commission_amount)}</Text>
                     <Text style={styles.earningsPayout}>{formatMoney(transaction.hotel_payout_amount)}</Text>
-                    <Text style={styles.earningsValue}>{transaction.vendor_payout_status.replaceAll('_', ' ')}</Text>
+                    <View>
+                      {transaction.bookings?.is_test ? <Text style={styles.testModeBadge}>TEST MODE</Text> : null}
+                      <Text style={styles.earningsValue}>
+                        {transaction.status === 'released_test'
+                          ? 'Released (TEST)'
+                          : transaction.bookings?.is_test && transaction.vendor_payout_status === 'pending'
+                            ? 'Pending (TEST)'
+                            : transaction.vendor_payout_status.replaceAll('_', ' ')}
+                      </Text>
+                    </View>
                   </View>
                 ))}
               </View>
@@ -690,6 +704,18 @@ const styles = StyleSheet.create({
     color: '#087E8B',
     fontSize: 9,
     fontWeight: '800',
+  },
+  earningsStatus: { flex: 1 },
+  testModeBadge: {
+    alignSelf: 'flex-start',
+    color: '#8A4B08',
+    backgroundColor: '#FFF1CC',
+    overflow: 'hidden',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 5,
+    fontSize: 9,
+    fontWeight: '900',
   },
   emptyEarnings: {
     paddingVertical: 15,

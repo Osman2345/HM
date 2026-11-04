@@ -7,15 +7,8 @@ import { supabase } from '@/lib/supabase';
 
 type DialogMode = 'method' | 'withdrawal' | null;
 
-const formatMoney = (value: number) => `Le ${Number(value || 0).toLocaleString('en-SL', { maximumFractionDigits: 2 })}`;
+const formatMoney = (value: number) => `Le ${Number(value || 0).toLocaleString('en-SL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const providerName = (provider: WithdrawalProvider) => provider === 'orange_money' ? 'Orange Money' : 'AfriMoney';
-const errorMessage = (error: unknown, fallback: string) => {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string') {
-    return error.message;
-  }
-  return fallback;
-};
 
 export default function WalletControls() {
   const [wallet, setWallet] = useState<WalletSummaryRow | null>(null);
@@ -31,21 +24,16 @@ export default function WalletControls() {
   const loadWallet = useCallback(async () => {
     setLoading(true);
     setError(null);
-    try {
-      const { data, error: walletError } = await supabase.rpc('get_my_wallet_summary');
-      if (walletError) throw walletError;
+    const { data, error: walletError } = await supabase.rpc('get_my_wallet_summary');
+    if (walletError) {
+      setError(walletError.message);
+    } else {
       const current = data?.[0] ?? null;
       setWallet(current);
-      setProvider(current?.provider ?? 'orange_money');
-      setPhone(current?.phone_number ?? '');
-    } catch (caughtError) {
-      setWallet(null);
-      setProvider('orange_money');
-      setPhone('');
-      setError(errorMessage(caughtError, 'Unable to load your wallet.'));
-    } finally {
-      setLoading(false);
+      if (current?.provider) setProvider(current.provider);
+      if (current?.phone_number) setPhone(current.phone_number);
     }
+    setLoading(false);
   }, []);
 
   useFocusEffect(useCallback(() => {
@@ -60,27 +48,24 @@ export default function WalletControls() {
     setBusy(true);
     setError(null);
     setNotice(null);
-    try {
-      const { error: saveError } = await supabase.rpc('save_withdrawal_method', {
-        p_provider: provider,
-        p_phone_number: phone.trim(),
-      });
-      if (saveError) throw saveError;
+    const { error: saveError } = await supabase.rpc('save_withdrawal_method', {
+      p_provider: provider,
+      p_phone_number: phone.trim(),
+    });
+    if (saveError) {
+      setError(saveError.message);
+    } else {
       setDialog(null);
       setNotice('Withdrawal method saved.');
       await loadWallet();
-    } catch (caughtError) {
-      setError(errorMessage(caughtError, 'Unable to save the withdrawal method.'));
-    } finally {
-      setBusy(false);
     }
+    setBusy(false);
   };
 
   const requestWithdrawal = async () => {
-    const normalizedAmount = amount.trim();
-    const value = Number(normalizedAmount);
-    if (!/^\d+(?:\.\d{1,2})?$/.test(normalizedAmount) || !Number.isFinite(value) || value <= 0) {
-      setError('Enter a valid withdrawal amount greater than zero with no more than two decimal places.');
+    const value = Number(amount);
+    if (!Number.isFinite(value) || value <= 0) {
+      setError('Enter a withdrawal amount greater than zero.');
       return;
     }
     if (value > Number(wallet?.available_balance ?? 0)) {
@@ -90,18 +75,16 @@ export default function WalletControls() {
     setBusy(true);
     setError(null);
     setNotice(null);
-    try {
-      const { error: requestError } = await supabase.rpc('request_withdrawal', { p_amount: value });
-      if (requestError) throw requestError;
+    const { error: requestError } = await supabase.rpc('request_withdrawal', { p_amount: value });
+    if (requestError) {
+      setError(requestError.message);
+    } else {
       setDialog(null);
       setAmount('');
       setNotice('Withdrawal request submitted for admin processing.');
       await loadWallet();
-    } catch (caughtError) {
-      setError(errorMessage(caughtError, 'Unable to submit the withdrawal request.'));
-    } finally {
-      setBusy(false);
     }
+    setBusy(false);
   };
 
   const openMethodDialog = () => {
@@ -150,9 +133,9 @@ export default function WalletControls() {
         </TouchableOpacity>
         <TouchableOpacity
           accessibilityRole="button"
-          style={[styles.withdrawButton, (loading || !wallet?.provider || Number(wallet.available_balance) <= 0) && styles.buttonDisabled]}
+          style={[styles.withdrawButton, (!wallet?.provider || Number(wallet.available_balance) <= 0) && styles.buttonDisabled]}
           onPress={openWithdrawalDialog}
-          disabled={loading || !wallet?.provider || Number(wallet.available_balance) <= 0 || busy}
+          disabled={!wallet?.provider || Number(wallet.available_balance) <= 0 || busy}
         >
           <Ionicons name="arrow-up-circle-outline" size={16} color="#FFFFFF" />
           <Text style={styles.withdrawButtonText}>Withdraw</Text>
@@ -162,9 +145,7 @@ export default function WalletControls() {
       {notice ? <Text accessibilityLiveRegion="polite" style={styles.notice}>{notice}</Text> : null}
       <Text style={styles.helper}>Transfers are requested here and marked paid by an admin after the mobile-money transfer is completed.</Text>
 
-      <Modal visible={dialog !== null} transparent animationType="fade" onRequestClose={() => {
-        if (!busy) setDialog(null);
-      }}>
+      <Modal visible={dialog !== null} transparent animationType="fade" onRequestClose={() => !busy && setDialog(null)}>
         <View style={styles.modalBackdrop}>
           <ScrollView contentContainerStyle={styles.modalScroll} keyboardShouldPersistTaps="handled">
             <View style={styles.modalCard}>

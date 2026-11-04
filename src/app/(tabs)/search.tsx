@@ -6,6 +6,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { getCached, invalidateCached, loadCached } from '@/lib/query-cache';
+import HotelListSkeleton from '@/components/skeletons/HotelListSkeleton';
+import useDelayedLoading from '@/hooks/useDelayedLoading';
 import { useAuthStore } from '@/store/auth.store';
 
 type HotelRow = {
@@ -53,6 +55,7 @@ function SearchResults({ initialQuery }: { initialQuery: string }) {
   const [error, setError] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('recommended');
   const [featuredOnly, setFeaturedOnly] = useState(false);
+  const showSkeleton = useDelayedLoading(loading);
 
   const loadResults = useCallback(async () => {
     const cacheKey = `hotels:search:${query.trim().toLowerCase()}`;
@@ -261,8 +264,9 @@ function SearchResults({ initialQuery }: { initialQuery: string }) {
           </View>
         ) : null}
 
-        <View style={desktopWeb ? styles.webCards : undefined}>
-        {sortedResults.map((hotel) => {
+        {loading && showSkeleton && !error ? <HotelListSkeleton desktop={desktopWeb} /> : (
+          <View style={desktopWeb ? styles.webCards : undefined}>
+          {sortedResults.map((hotel) => {
           const price = getLowestPrice(hotel);
           const room = getCheapestRoom(hotel);
           const imageUri = hotel.cover_image || hotel.images?.find((image) => Boolean(image));
@@ -362,8 +366,9 @@ function SearchResults({ initialQuery }: { initialQuery: string }) {
               </TouchableOpacity>
             </View>
           );
-        })}
-        </View>
+          })}
+          </View>
+        )}
       </ScrollView>
     </View>
   );

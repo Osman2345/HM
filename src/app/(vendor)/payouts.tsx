@@ -9,16 +9,20 @@ interface VendorPayout {
   total_amount: number;
   commission_amount: number;
   hotel_payout_amount: number;
+  status: string;
   vendor_payout_status: string;
   created_at: string;
+  released_at: string | null;
   hotels: { name: string; owner_id: string } | null;
+  bookings: { is_test: boolean } | null;
 }
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat('en-SL', {
     style: 'currency',
     currency: 'SLE',
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(Number(value) || 0);
 
 export default function VendorPayoutsScreen() {
@@ -41,7 +45,7 @@ export default function VendorPayoutsScreen() {
 
     const { data, error: fetchError } = await supabase
       .from('transactions')
-      .select('id, total_amount, commission_amount, hotel_payout_amount, vendor_payout_status, created_at, hotels!inner(name, owner_id)')
+      .select('id, total_amount, commission_amount, hotel_payout_amount, status, vendor_payout_status, created_at, released_at, hotels!inner(name, owner_id), bookings(is_test)')
       .eq('hotels.owner_id', userId)
       .order('created_at', { ascending: false });
 
@@ -84,7 +88,16 @@ export default function VendorPayoutsScreen() {
         <View key={payout.id} style={styles.card}>
           <View style={styles.row}>
             <Text style={styles.id}>Payout {payout.id.slice(0, 8)}</Text>
-            <Text style={styles.status}>{payout.vendor_payout_status.replaceAll('_', ' ')}</Text>
+            <View style={styles.statusGroup}>
+              {payout.bookings?.is_test ? <Text style={styles.testModeBadge}>TEST MODE</Text> : null}
+              <Text style={styles.status}>
+                {payout.status === 'released_test'
+                  ? 'Released (TEST)'
+                  : payout.bookings?.is_test && payout.vendor_payout_status === 'pending'
+                    ? 'Pending (TEST)'
+                    : payout.vendor_payout_status.replaceAll('_', ' ')}
+              </Text>
+            </View>
           </View>
           <Text style={styles.property}>{payout.hotels?.name ?? 'Deleted property'}</Text>
           <Text style={styles.amount}>{formatMoney(payout.hotel_payout_amount)}</Text>
@@ -92,7 +105,7 @@ export default function VendorPayoutsScreen() {
               Gross {formatMoney(payout.total_amount)} · Commission {formatMoney(payout.commission_amount)}
           </Text>
           <Text style={styles.meta}>{payout.vendor_payout_status === 'eligible' ? 'Available after checkout; transfer is handled manually.' : payout.vendor_payout_status === 'paid' ? 'Transferred by the platform.' : 'Payout becomes eligible after checkout.'}</Text>
-          <Text style={styles.meta}>{new Date(payout.created_at).toLocaleDateString()}</Text>
+          <Text style={styles.meta}>{new Date(payout.released_at ?? payout.created_at).toLocaleDateString()}</Text>
         </View>
       ))}
     </ScrollView>
@@ -107,6 +120,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   id: { fontSize: 12, fontWeight: '800', color: '#64748B' },
   status: { color: '#087E8B', fontSize: 11, fontWeight: '800', textTransform: 'capitalize' },
+  statusGroup: { alignItems: 'flex-end', gap: 4, maxWidth: '60%' },
+  testModeBadge: { color: '#8A4B08', backgroundColor: '#FFF1CC', overflow: 'hidden', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, fontSize: 9, fontWeight: '900' },
   property: { color: '#17354B', fontSize: 15, fontWeight: '800' },
   amount: { color: '#087E8B', fontSize: 19, fontWeight: '900' },
   meta: { color: '#718397', fontSize: 11 },

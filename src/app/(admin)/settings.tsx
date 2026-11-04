@@ -89,7 +89,7 @@ export default function AdminSettingsScreen() {
         <View style={styles.sectionIcon}><Ionicons name="wallet-outline" size={19} color="#087E8B" /></View>
         <View style={styles.sectionCopy}>
           <Text style={styles.sectionTitle}>Booking Commission &amp; Charges</Text>
-          <Text style={styles.sectionSubtitle}>One platform-wide rate for all vendor plans.</Text>
+          <Text style={styles.sectionSubtitle}>One platform-wide commission rate applies to every vendor booking.</Text>
         </View>
       </View>
 

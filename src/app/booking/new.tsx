@@ -278,7 +278,8 @@ export default function NewBookingScreen() {
           params: {
             id: booking.id,
             paymentReference: payment.reference,
-            authorizationUrl: payment.authorization_url,
+            ...(payment.authorization_url ? { authorizationUrl: payment.authorization_url } : {}),
+            ...(payment.simulated ? { simulated: 'true' } : {}),
           },
         });
       } catch (paymentError) {
@@ -493,13 +494,19 @@ export default function NewBookingScreen() {
 
       {selectedRoom && nights > 0 ? (
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryHeading}>Price summary</Text>
-          <View style={styles.summaryLine}><Text style={styles.summaryLabel}>Stay charge</Text><Text style={styles.summaryAmount}>Le {(selectedRoom.price_per_night * nights * roomCount).toLocaleString()}</Text></View>
-          {lateCheckoutFee > 0 ? (
-            <View style={styles.summaryLine}><Text style={styles.summaryLabel}>Late checkout fee</Text><Text style={styles.summaryAmount}>Le {lateCheckoutFee.toLocaleString()}</Text></View>
+          {paymentMethod === 'monime' ? (
+            <>
+              <Text style={styles.summaryHeading}>Price summary</Text>
+              <View style={styles.summaryLine}><Text style={styles.summaryLabel}>Stay charge</Text><Text style={styles.summaryAmount}>Le {(selectedRoom.price_per_night * nights * roomCount).toLocaleString()}</Text></View>
+              {lateCheckoutFee > 0 ? (
+                <View style={styles.summaryLine}><Text style={styles.summaryLabel}>Late checkout fee</Text><Text style={styles.summaryAmount}>Le {lateCheckoutFee.toLocaleString()}</Text></View>
+              ) : null}
+            </>
           ) : null}
           <View style={styles.summaryTotalRow}><Text style={styles.summaryTotalLabel}>Total</Text><Text style={styles.summaryTotal}>Le {totalPrice.toLocaleString()}</Text></View>
-          <Text style={styles.summaryNote}>Final amount shown in Sierra Leonean leones. Any late checkout beyond the hotel’s standard time is included here.</Text>
+          {paymentMethod === 'monime' ? (
+            <Text style={styles.summaryNote}>Final amount shown in Sierra Leonean leones. Any late checkout beyond the hotel’s standard time is included here.</Text>
+          ) : null}
         </View>
       ) : null}
 

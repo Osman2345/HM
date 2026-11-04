@@ -30,7 +30,6 @@ create index if not exists withdrawal_requests_status_idx
 
 alter table public.withdrawal_methods enable row level security;
 alter table public.withdrawal_requests enable row level security;
-grant select on public.withdrawal_methods, public.withdrawal_requests to authenticated;
 
 drop policy if exists "withdrawal_methods_read_own_or_admin" on public.withdrawal_methods;
 create policy "withdrawal_methods_read_own_or_admin" on public.withdrawal_methods
@@ -50,7 +49,7 @@ security definer
 set search_path = public
 as $$
 declare
-  account_role public.user_role;
+  current_role public.user_role;
   is_disabled boolean;
   saved_method public.withdrawal_methods%rowtype;
   normalized_phone text := trim(p_phone_number);
@@ -58,16 +57,10 @@ begin
   if auth.uid() is null then
     raise exception 'Authentication required';
   end if;
-  select role, disabled into account_role, is_disabled
+  select role, disabled into current_role, is_disabled
   from public.users where id = auth.uid();
-  if not found then
-    raise exception 'Your signed-in account profile was not found. Sign out and back in, then contact support if this continues.';
-  end if;
-  if is_disabled is true then
-    raise exception 'This account is disabled. Ask an administrator to reactivate it before adding a withdrawal method.';
-  end if;
-  if account_role is null or account_role not in ('admin', 'vendor') then
-    raise exception 'Withdrawals are available only to admin and vendor accounts.';
+  if current_role is null or current_role not in ('admin', 'vendor') or is_disabled is distinct from false then
+    raise exception 'An active admin or vendor account is required';
   end if;
   if p_provider not in ('orange_money', 'afri_money') then
     raise exception 'Choose Orange Money or AfriMoney';
@@ -102,10 +95,8 @@ security definer
 set search_path = public
 as $$
 declare
-  account_role public.user_role;
-  is_disabled boolean;
+  current_role public.user_role;
   gross_balance numeric(12,2) := 0;
-  available_gross_balance numeric(12,2) := 0;
   reserved_amount numeric(12,2) := 0;
   paid_amount numeric(12,2) := 0;
   saved_method public.withdrawal_methods%rowtype;
@@ -113,38 +104,20 @@ begin
   if auth.uid() is null then
     raise exception 'Authentication required';
   end if;
-  select role, disabled into account_role, is_disabled
-  from public.users where id = auth.uid();
-  if not found then
-    raise exception 'Your signed-in account profile was not found. Sign out and back in, then contact support if this continues.';
-  end if;
-  if is_disabled is true then
-    raise exception 'This account is disabled. Ask an administrator to reactivate it before accessing the wallet.';
-  end if;
-  if account_role is null or account_role not in ('admin', 'vendor') then
-    raise exception 'Wallets are available only to admin and vendor accounts.';
+  select role into current_role from public.users
+  where id = auth.uid() and disabled = false;
+  if current_role is null or current_role not in ('admin', 'vendor') then
+    raise exception 'An active admin or vendor account is required';
   end if;
 
-  if account_role = 'admin' then
+  if current_role = 'admin' then
     select coalesce(sum(t.commission_amount), 0)::numeric(12,2)
-    into gross_balance
-    from public.transactions t
-    join public.bookings b on b.id = t.booking_id
-    where b.payment_status = 'paid';
-    available_gross_balance := gross_balance;
+    into gross_balance from public.transactions t;
   else
     select coalesce(sum(t.hotel_payout_amount), 0)::numeric(12,2)
     into gross_balance
     from public.transactions t
-    join public.bookings b on b.id = t.booking_id
-    where t.vendor_id = auth.uid() and b.payment_status = 'paid';
-    select coalesce(sum(t.hotel_payout_amount), 0)::numeric(12,2)
-    into available_gross_balance
-    from public.transactions t
-    join public.bookings b on b.id = t.booking_id
-    where t.vendor_id = auth.uid()
-      and t.vendor_payout_status = 'eligible'
-      and b.payment_status = 'paid';
+    where t.vendor_id = auth.uid() and t.vendor_payout_status = 'eligible';
   end if;
 
   select coalesce(sum(w.amount) filter (where w.status in ('pending', 'approved')), 0)::numeric(12,2),
@@ -157,7 +130,7 @@ begin
 
   return query select
     gross_balance,
-    greatest(available_gross_balance - reserved_amount - paid_amount, 0)::numeric(12,2),
+    greatest(gross_balance - reserved_amount - paid_amount, 0)::numeric(12,2),
     reserved_amount,
     paid_amount,
     saved_method.provider,
@@ -172,7 +145,7 @@ security definer
 set search_path = public
 as $$
 declare
-  account_role public.user_role;
+  current_role public.user_role;
   is_disabled boolean;
   saved_method public.withdrawal_methods%rowtype;
   available_amount numeric(12,2);
@@ -181,16 +154,10 @@ begin
   if auth.uid() is null then
     raise exception 'Authentication required';
   end if;
-  select role, disabled into account_role, is_disabled
+  select role, disabled into current_role, is_disabled
   from public.users where id = auth.uid() for update;
-  if not found then
-    raise exception 'Your signed-in account profile was not found. Sign out and back in, then contact support if this continues.';
-  end if;
-  if is_disabled is true then
-    raise exception 'This account is disabled. Ask an administrator to reactivate it before requesting a withdrawal.';
-  end if;
-  if account_role is null or account_role not in ('admin', 'vendor') then
-    raise exception 'Withdrawals are available only to admin and vendor accounts.';
+  if current_role is null or current_role not in ('admin', 'vendor') or is_disabled is distinct from false then
+    raise exception 'An active admin or vendor account is required';
   end if;
   if p_amount is null or p_amount <= 0 or p_amount <> round(p_amount, 2) then
     raise exception 'Enter a withdrawal amount greater than zero with no more than two decimal places';
@@ -209,7 +176,7 @@ begin
   insert into public.withdrawal_requests (
     requester_id, requester_role, amount, provider, phone_number, status
   ) values (
-    auth.uid(), account_role, p_amount, saved_method.provider, saved_method.phone_number, 'pending'
+    auth.uid(), current_role, p_amount, saved_method.provider, saved_method.phone_number, 'pending'
   ) returning * into new_request;
   return new_request;
 end;

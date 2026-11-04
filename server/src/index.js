@@ -475,6 +475,50 @@ const authenticateRequest = async (req) => {
   return response.json();
 };
 
+app.get('/api/hotels', async (req, res) => {
+  const requestedLimit = Number(req.query.limit ?? 30);
+  if (!Number.isInteger(requestedLimit) || requestedLimit < 1 || requestedLimit > 100) {
+    return res.status(400).json({ error: 'limit must be an integer between 1 and 100' });
+  }
+
+  try {
+    const { data, error } = await getSupabaseAdminClient()
+      .from('hotels')
+      .select('id, name, description, location, city, country, rating, review_count, featured, cover_image, images, amenities, policies, rooms')
+      .eq('approval_status', 'approved')
+      .order('created_at', { ascending: false })
+      .limit(requestedLimit);
+    if (error) throw error;
+
+    return res.json({ hotels: data ?? [] });
+  } catch (error) {
+    console.error('Unable to fetch approved hotels:', error);
+    return res.status(503).json({ error: 'Hotel service is temporarily unavailable' });
+  }
+});
+
+app.get('/api/bookings', async (req, res) => {
+  try {
+    const user = await authenticateRequest(req);
+    if (!user?.id) {
+      return res.status(401).json({ error: 'A valid Bearer token is required' });
+    }
+
+    const { data, error } = await getSupabaseAdminClient()
+      .from('bookings')
+      .select('id, hotel_id, booking_status, payment_status, payment_method, voucher_code, total_price, check_in, check_out, created_at, hotels(name, city)')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (error) throw error;
+
+    return res.json({ bookings: data ?? [] });
+  } catch (error) {
+    console.error('Unable to fetch user bookings:', error);
+    return res.status(503).json({ error: 'Booking service is temporarily unavailable' });
+  }
+});
+
 const getOwnedBooking = async (bookingId, userId) => {
   if (typeof bookingId !== 'string' || !bookingId || typeof userId !== 'string' || !userId) {
     return null;
@@ -1387,6 +1431,10 @@ app.post('/api/payments/monime-webhook', async (req, res) => {
   }
 });
 
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Hotel backend listening on port ${port} on all network interfaces`);
-});
+if (require.main === module) {
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`Hotel backend listening on port ${port} on all network interfaces`);
+  });
+}
+
+module.exports = app;

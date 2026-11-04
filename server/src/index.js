@@ -12,6 +12,23 @@ dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env') });
 dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env.local') });
 
 const app = express();
+app.get('/', (_req, res) => {
+  res.status(200).json({
+    message: 'SL STAY API is LIVE - WAIIS 2026!',
+    status: 'Ready',
+    version: '1.0',
+    endpoints: {
+      hotels: '/api/hotels',
+      bookings: '/api/bookings',
+      health: '/api/health',
+    },
+  });
+});
+
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'OK', uptime: process.uptime() });
+});
+
 const port = Number(process.env.PORT || 3000);
 const { getAIConfig } = require('./config/ai');
 const { getRecommendations } = require('./ai-recommendations');

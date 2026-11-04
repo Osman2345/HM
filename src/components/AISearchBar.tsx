@@ -39,6 +39,7 @@ export type AISearchState = {
 
 type RecommendationResponse = {
   recommendations?: { hotel: AIHotelResult }[];
+  answer?: string | null;
   message?: string | null;
   error?: string;
 };
@@ -77,7 +78,7 @@ export default function AISearchBar({
         loading: false,
         results: (response.recommendations ?? []).map(({ hotel }) => hotel),
       });
-      setMessage(response.message ?? null);
+      setMessage(response.answer || response.message || null);
     } catch (error) {
       onSearchStateChange({ loading: false, results: [], error: true });
       setMessage(error instanceof Error && (
@@ -95,19 +96,19 @@ export default function AISearchBar({
     <View style={styles.container}>
       <View style={styles.searchBar}>
         <TextInput
-          accessibilityLabel="Search hotels with SL STAY"
+          accessibilityLabel="Ask SL ASK about hotels and rooms"
           value={query}
           onChangeText={setQuery}
           onSubmitEditing={() => void askAI()}
           returnKeyType="search"
-          placeholder="Ask SL STAY... e.g. cheap hotel in Lumley with AC"
+          placeholder="Ask SL ASK... e.g. compare rooms at LIA"
           placeholderTextColor="#718096"
           style={styles.input}
           maxLength={500}
         />
         <TouchableOpacity
           accessibilityRole="button"
-          accessibilityLabel="Ask SL STAY"
+          accessibilityLabel="Ask SL ASK"
           style={[styles.askButton, loading && styles.disabledButton]}
           onPress={() => void askAI()}
           disabled={loading || !query.trim()}
@@ -115,13 +116,15 @@ export default function AISearchBar({
           {loading ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={styles.askButtonText}>Ask SL STAY</Text>
+            <Text style={styles.askButtonText}>Ask SL ASK</Text>
           )}
         </TouchableOpacity>
       </View>
 
       {loading ? <Text style={styles.status}>Searching...</Text> : null}
-      {!loading && message ? <Text style={styles.status}>{message}</Text> : null}
+      {!loading && message ? (
+        <Text accessibilityLiveRegion="polite" style={styles.status}>{message}</Text>
+      ) : null}
     </View>
   );
 }
@@ -155,5 +158,5 @@ const styles = StyleSheet.create({
   },
   disabledButton: { opacity: 0.7 },
   askButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
-  status: { paddingVertical: 8, color: '#667085', fontSize: 14, textAlign: 'center' },
+  status: { padding: 12, borderRadius: 12, backgroundColor: '#F3F8FA', color: '#17354B', fontSize: 14, lineHeight: 21 },
 });

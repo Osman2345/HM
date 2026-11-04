@@ -1,11 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function MobileAuthHeader() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
 
   if (Platform.OS === 'web') {
     return (
@@ -27,7 +25,7 @@ export default function MobileAuthHeader() {
   }
 
   return (
-    <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+    <View style={styles.header}>
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => router.replace('/(tabs)')}

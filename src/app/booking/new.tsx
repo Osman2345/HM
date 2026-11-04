@@ -303,7 +303,7 @@ export default function NewBookingScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={[styles.container, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 28 }]}
+      contentContainerStyle={[styles.container, { paddingTop: 12, paddingBottom: insets.bottom + 28 }]}
       keyboardShouldPersistTaps="handled"
     >
       <TouchableOpacity

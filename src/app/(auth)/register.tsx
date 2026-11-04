@@ -1,14 +1,12 @@
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MobileAuthHeader from '@/components/auth/MobileAuthHeader';
 import MobileAuthHero from '@/components/auth/MobileAuthHero';
 import { useAuthStore } from '@/store/auth.store';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ bookingHotelId?: string | string[] }>();
   const bookingHotelId = typeof params.bookingHotelId === 'string' ? params.bookingHotelId : undefined;
   const signUp = useAuthStore((state) => state.signUp);
@@ -63,7 +61,7 @@ export default function RegisterScreen() {
         contentContainerStyle={StyleSheet.flatten([
           styles.container,
           Platform.OS === 'web' ? styles.webContainer : styles.mobileContainer,
-          Platform.OS !== 'web' ? { paddingTop: 220 + insets.top } : undefined,
+          Platform.OS !== 'web' ? { paddingTop: 220 } : undefined,
         ])}
         keyboardShouldPersistTaps="handled"
       >

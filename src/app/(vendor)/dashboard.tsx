@@ -1,8 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
-  Linking,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -13,7 +12,6 @@ import {
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
-import { createBackendVendorUpgrade, loadPlatformSettings, type PlatformSettings } from '@/lib/backend';
 import WalletControls from '@/components/finance/WalletControls';
 import VendorCommissionWidget from '@/components/finance/VendorCommissionWidget';
 
@@ -67,23 +65,10 @@ export default function VendorDashboardScreen() {
   const [bookings, setBookings] = useState<VendorBooking[]>([]);
   const [bookingCount, setBookingCount] = useState(0);
   const [pendingBookingCount, setPendingBookingCount] = useState(0);
-  const [planId, setPlanId] = useState<'free' | 'pro'>('free');
-  const [pendingPlanId, setPendingPlanId] = useState<'free' | 'pro'>('free');
-  const [platformSettings, setPlatformSettings] = useState<PlatformSettings | null>(null);
   const [transactions, setTransactions] = useState<VendorTransaction[]>([]);
-  const [upgradeBusy, setUpgradeBusy] = useState(false);
-  const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    void loadPlatformSettings()
-      .then((settings) => { if (active) setPlatformSettings(settings); })
-      .catch(() => { if (active) setPlatformSettings(null); });
-    return () => { active = false; };
-  }, []);
 
   const refresh = useCallback(async (pull = false) => {
     if (!userId) {
@@ -97,17 +82,12 @@ export default function VendorDashboardScreen() {
     setError(null);
 
     try {
-      const [hotelResponse, profileResponse, transactionResponse] = await Promise.all([
+      const [hotelResponse, transactionResponse] = await Promise.all([
         supabase
           .from('hotels')
           .select('id, name, approval_status')
           .eq('owner_id', userId)
           .order('created_at', { ascending: false }),
-        supabase
-          .from('users')
-          .select('plan_id, pending_plan_id')
-          .eq('id', userId)
-          .single(),
         supabase
           .from('transactions')
           .select('id, booking_id, total_amount, commission_amount, hotel_payout_amount, status, vendor_payout_status, created_at, bookings(is_test)')
@@ -116,16 +96,12 @@ export default function VendorDashboardScreen() {
           .limit(20),
       ]);
       const { data: hotelData, error: hotelError } = hotelResponse;
-      const { data: profileData, error: profileError } = profileResponse;
       const { data: transactionData, error: transactionError } = transactionResponse;
       if (hotelError) throw hotelError;
-      if (profileError) throw profileError;
       if (transactionError) throw transactionError;
 
       const ownedHotels = (hotelData ?? []) as VendorHotel[];
       setHotels(ownedHotels);
-      setPlanId(profileData.plan_id === 'pro' ? 'pro' : 'free');
-      setPendingPlanId(profileData.pending_plan_id === 'pro' ? 'pro' : 'free');
       setTransactions((transactionData ?? []) as VendorTransaction[]);
 
       if (ownedHotels.length === 0) {
@@ -164,20 +140,6 @@ export default function VendorDashboardScreen() {
       setRefreshing(false);
     }
   }, [userId]);
-
-  const startUpgrade = async () => {
-    setUpgradeBusy(true);
-    setUpgradeMessage(null);
-    try {
-      const payment = await createBackendVendorUpgrade();
-      await Linking.openURL(payment.authorization_url);
-      setUpgradeMessage('Complete the Monime checkout. Your plan will change to PRO after payment is verified.');
-    } catch (caughtError) {
-      setUpgradeMessage(caughtError instanceof Error ? caughtError.message : 'Unable to start the PRO upgrade.');
-    } finally {
-      setUpgradeBusy(false);
-    }
-  };
 
   useFocusEffect(useCallback(() => {
     void refresh();
@@ -262,45 +224,6 @@ export default function VendorDashboardScreen() {
                 <Text style={styles.metricLabel}>{metric.label}</Text>
               </View>
             ))}
-          </View>
-
-          <View style={styles.planPanel}>
-            <View style={styles.panelHeading}>
-              <View>
-                <Text style={styles.panelTitle}>Vendor plan</Text>
-                <Text style={styles.panelSubtitle}>
-                  {planId === 'pro'
-                    ? 'PRO · Up to 5 hotels'
-                    : pendingPlanId === 'pro'
-                      ? 'PRO selected · Pay Le 100 once to activate your plan and list properties'
-                      : 'FREE · 1 hotel'}
-                </Text>
-                <Text style={styles.panelSubtitle}>
-                  {platformSettings
-                    ? `Platform booking commission: ${platformSettings.commission_type === 'percentage' ? `${platformSettings.commission_value}%` : `Le ${Number(platformSettings.commission_value).toLocaleString()} per paid booking`}`
-                    : 'Booking commission is set by the platform administrator.'}
-                </Text>
-              </View>
-              <View style={styles.planBadge}><Text style={styles.planBadgeText}>{planId.toUpperCase()}</Text></View>
-            </View>
-            {planId !== 'pro' && (pendingPlanId === 'pro' || hotels.length >= 1) ? (
-              <TouchableOpacity
-                accessibilityRole="button"
-                disabled={upgradeBusy}
-                style={[styles.upgradeButton, upgradeBusy && styles.disabledButton]}
-                onPress={() => void startUpgrade()}
-              >
-                <Text style={styles.upgradeButtonText}>
-                  {upgradeBusy ? 'Opening Monime…' : pendingPlanId === 'pro' ? 'Pay now - Le 100' : 'Upgrade to PRO - Le 100'}
-                </Text>
-              </TouchableOpacity>
-            ) : null}
-            {pendingPlanId === 'pro' && planId !== 'pro' ? (
-              <Text style={styles.upgradeMessage}>
-                Complete the one-time Monime payment before creating your first property. PRO activates only after payment is verified.
-              </Text>
-            ) : null}
-            {upgradeMessage ? <Text style={styles.upgradeMessage}>{upgradeMessage}</Text> : null}
           </View>
 
           <View style={[styles.contentGrid, compact && styles.contentGridCompact]}>
@@ -619,47 +542,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E9EFF0',
     backgroundColor: '#FFFFFF',
-  },
-  planPanel: {
-    padding: 18,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: '#E9EFF0',
-    backgroundColor: '#FFFFFF',
-  },
-  planBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-    backgroundColor: '#EAF4FC',
-  },
-  planBadgeText: {
-    color: '#2879B8',
-    fontSize: 10,
-    fontWeight: '900',
-  },
-  upgradeButton: {
-    minHeight: 43,
-    marginTop: 5,
-    paddingHorizontal: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-    backgroundColor: '#2563EB',
-  },
-  upgradeButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  upgradeMessage: {
-    marginTop: 9,
-    color: '#475569',
-    fontSize: 11,
-    lineHeight: 16,
   },
   earningsPanel: {
     padding: 18,

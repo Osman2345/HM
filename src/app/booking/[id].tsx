@@ -236,19 +236,19 @@ export default function BookingDetailsScreen() {
   };
 
   if (loading) {
-    return <View style={[styles.centerScreen, { paddingTop: insets.top }]}><ActivityIndicator color="#087E8B" /><Text style={styles.centerText}>Loading your booking…</Text></View>;
+    return <View style={styles.centerScreen}><ActivityIndicator color="#087E8B" /><Text style={styles.centerText}>Loading your booking…</Text></View>;
   }
   if (error && !booking) {
-    return <View style={[styles.centerScreen, { paddingTop: insets.top }]}><Ionicons name="alert-circle-outline" size={32} color="#B42318" /><Text style={styles.centerText}>{error}</Text><TouchableOpacity style={styles.secondaryButton} onPress={() => void loadBooking()}><Text style={styles.secondaryButtonText}>Try again</Text></TouchableOpacity></View>;
+    return <View style={styles.centerScreen}><Ionicons name="alert-circle-outline" size={32} color="#B42318" /><Text style={styles.centerText}>{error}</Text><TouchableOpacity style={styles.secondaryButton} onPress={() => void loadBooking()}><Text style={styles.secondaryButtonText}>Try again</Text></TouchableOpacity></View>;
   }
   if (!booking) {
-    return <View style={[styles.centerScreen, { paddingTop: insets.top }]}><Text style={styles.centerText}>Booking not found.</Text><TouchableOpacity style={styles.secondaryButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/bookings'))}><Text style={styles.secondaryButtonText}>Go back</Text></TouchableOpacity></View>;
+    return <View style={styles.centerScreen}><Text style={styles.centerText}>Booking not found.</Text><TouchableOpacity style={styles.secondaryButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/bookings'))}><Text style={styles.secondaryButtonText}>Go back</Text></TouchableOpacity></View>;
   }
 
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={[styles.container, { paddingTop: insets.top + 10, paddingBottom: insets.bottom + 28 }]}
+      contentContainerStyle={[styles.container, { paddingTop: 10, paddingBottom: insets.bottom + 28 }]}
     >
       <TouchableOpacity style={styles.backButton} onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/bookings'))} accessibilityRole="button">
         <Ionicons name="arrow-back" size={20} color="#0F172A" /><Text style={styles.backText}>Back</Text>

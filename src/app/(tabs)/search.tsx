@@ -9,28 +9,9 @@ import { getCached, invalidateCached, loadCached } from '@/lib/query-cache';
 import HotelListSkeleton from '@/components/skeletons/HotelListSkeleton';
 import useDelayedLoading from '@/hooks/useDelayedLoading';
 import { useAuthStore } from '@/store/auth.store';
+import AISearchBar, { type AIHotelResult, type AISearchState } from '@/components/AISearchBar';
 
-type HotelRow = {
-  id: string;
-  name: string;
-  city: string;
-  country: string;
-  location: string;
-  rating: number | null;
-  review_count: number | null;
-  featured: boolean | null;
-  description: string | null;
-  cover_image: string | null;
-  images: string[] | null;
-  amenities: string[] | null;
-  policies: string | null;
-  rooms: {
-    type?: string;
-    price_per_night?: number | string;
-    total_rooms?: number;
-    capacity_guests?: number;
-  }[] | null;
-};
+type HotelRow = AIHotelResult;
 
 type SortMode = 'recommended' | 'price';
 
@@ -52,6 +33,7 @@ function SearchResults({ initialQuery }: { initialQuery: string }) {
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [resultCount, setResultCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [aiSearch, setAiSearch] = useState<AISearchState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('recommended');
   const [featuredOnly, setFeaturedOnly] = useState(false);
@@ -140,14 +122,20 @@ function SearchResults({ initialQuery }: { initialQuery: string }) {
   }, [userId]);
 
   const sortedResults = useMemo(() => {
-    const visible = featuredOnly ? results.filter((hotel) => hotel.featured) : [...results];
+    const sourceResults = aiSearch?.results ?? results;
+    const visible = featuredOnly ? sourceResults.filter((hotel) => hotel.featured) : [...sourceResults];
 
     if (sortMode === 'price') {
       visible.sort((left, right) => getLowestPrice(left) - getLowestPrice(right));
     }
 
     return visible;
-  }, [featuredOnly, results, sortMode]);
+  }, [aiSearch, featuredOnly, results, sortMode]);
+
+  const displayedResultCount = aiSearch
+    ? sortedResults.length
+    : featuredOnly ? sortedResults.length : resultCount;
+  const resultsLoading = aiSearch?.loading ?? loading;
 
   const toggleFavorite = async (hotel: HotelRow) => {
     if (!session?.user?.id) {
@@ -182,8 +170,8 @@ function SearchResults({ initialQuery }: { initialQuery: string }) {
 
   return (
     <View style={styles.screen}>
-      <StatusBar style="light" />
-      <View style={[styles.blueHeader, { paddingTop: insets.top + 12 }]}>
+      <StatusBar style="dark" />
+      <View style={[styles.blueHeader, { paddingTop: 12 }]}>
         <View style={styles.searchBar}>
           <TouchableOpacity
             style={styles.backButton}
@@ -195,7 +183,10 @@ function SearchResults({ initialQuery }: { initialQuery: string }) {
           </TouchableOpacity>
           <TextInput
             value={query}
-            onChangeText={setQuery}
+            onChangeText={(value) => {
+              setQuery(value);
+              setAiSearch(null);
+            }}
             placeholder="Where are you going?"
             placeholderTextColor="#626B75"
             style={styles.searchInput}
@@ -207,6 +198,8 @@ function SearchResults({ initialQuery }: { initialQuery: string }) {
           </View>
         </View>
       </View>
+
+      <AISearchBar onSearchStateChange={setAiSearch} />
 
       <View style={styles.controls}>
         <TouchableOpacity
@@ -241,9 +234,9 @@ function SearchResults({ initialQuery }: { initialQuery: string }) {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.summary}>
-          {loading ? 'Finding stays…' : `${featuredOnly ? sortedResults.length : resultCount} propert${(featuredOnly ? sortedResults.length : resultCount) === 1 ? 'y' : 'ies'}`}
+          {resultsLoading ? 'Finding stays…' : `${displayedResultCount} propert${displayedResultCount === 1 ? 'y' : 'ies'}`}
         </Text>
-        {error ? (
+        {!aiSearch && error ? (
           <>
             <Text style={styles.error}>{error}</Text>
             <TouchableOpacity
@@ -256,15 +249,17 @@ function SearchResults({ initialQuery }: { initialQuery: string }) {
             </TouchableOpacity>
           </>
         ) : null}
-        {!loading && !error && sortedResults.length === 0 ? (
+        {!resultsLoading && (aiSearch ? !aiSearch.error : !error) && sortedResults.length === 0 ? (
           <View style={styles.noResults}>
             <Ionicons name="bed-outline" size={34} color="#798899" />
-            <Text style={styles.noResultsTitle}>No stays found</Text>
-            <Text style={styles.noResultsText}>Try a different destination or turn off the Featured filter.</Text>
+            <Text style={styles.noResultsTitle}>{aiSearch ? 'No matching stays found' : 'No stays found'}</Text>
+            <Text style={styles.noResultsText}>
+              {aiSearch ? 'Try a different description or adjust your search.' : 'Try a different destination or turn off the Featured filter.'}
+            </Text>
           </View>
         ) : null}
 
-        {loading && showSkeleton && !error ? <HotelListSkeleton desktop={desktopWeb} /> : (
+        {resultsLoading && (aiSearch !== null || showSkeleton) && (aiSearch ? !aiSearch.error : !error) ? <HotelListSkeleton desktop={desktopWeb} /> : (
           <View style={desktopWeb ? styles.webCards : undefined}>
           {sortedResults.map((hotel) => {
           const price = getLowestPrice(hotel);

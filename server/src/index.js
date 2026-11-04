@@ -9,9 +9,12 @@ const { createClient } = require('@supabase/supabase-js');
 
 dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env') });
+dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env.local') });
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
+const { getAIConfig } = require('./config/ai');
+const { getRecommendations } = require('./ai-recommendations');
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:8081,exp://localhost:8081,http://127.0.0.1:8081')
   .split(',')
   .map((origin) => origin.trim())
@@ -346,6 +349,47 @@ app.post('/api/admin/vendors/decision-email', async (req, res) => {
 });
 
 const createResponse = (message, data = {}) => ({ ok: true, message, ...data });
+
+app.get('/api/ai/status', (_req, res) => {
+  const { isConfigured, model } = getAIConfig();
+  return res.json({
+    apiKeyConfigured: isConfigured,
+    model,
+    competition: 'WAIIS 2026 Build',
+  });
+});
+
+app.post('/api/ai/recommend', async (req, res) => {
+  const query = typeof req.body?.query === 'string' ? req.body.query.trim() : '';
+  if (!query) {
+    return res.status(400).json({ error: 'Query required' });
+  }
+  if (query.length > 500) {
+    return res.status(400).json({ error: 'Query must be 500 characters or fewer.' });
+  }
+
+  try {
+    return res.json(await getRecommendations(query));
+  } catch (error) {
+    if (error?.code === 'AI_NOT_CONFIGURED') {
+      return res.status(503).json({
+        error: 'AI service not configured',
+        recommendations: [],
+      });
+    }
+    if (error?.code === 'HOTEL_DATABASE_NOT_CONFIGURED') {
+      return res.status(503).json({
+        error: 'Hotel search database not configured',
+        recommendations: [],
+      });
+    }
+    console.error('Unable to generate hotel recommendations.');
+    return res.status(502).json({
+      error: 'AI search is temporarily unavailable.',
+      recommendations: [],
+    });
+  }
+});
 
 const getSupabaseConfig = () => {
   const url = process.env.SUPABASE_URL;

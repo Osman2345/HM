@@ -125,14 +125,6 @@ export interface PayoutRow {
   updated_at: string;
 }
 
-export interface VendorPlanRow {
-  id: 'free' | 'pro';
-  name: 'FREE' | 'PRO';
-  price: number;
-  max_hotels: number;
-  features: string[];
-}
-
 export interface TransactionRow {
   id: string;
   booking_id: string;
@@ -252,8 +244,6 @@ export interface Database {
           preferences: Record<string, unknown>;
           disabled: boolean;
           vendor_status: VendorStatus;
-          plan_id: 'free' | 'pro';
-          pending_plan_id: 'free' | 'pro';
           business_name: string | null;
           business_description: string | null;
           business_logo: string | null;
@@ -279,8 +269,6 @@ export interface Database {
           preferences: Record<string, unknown>;
           disabled: boolean;
           vendor_status: VendorStatus;
-          plan_id: 'free' | 'pro';
-          pending_plan_id: 'free' | 'pro';
           business_name: string | null;
           business_description: string | null;
           business_logo: string | null;
@@ -300,8 +288,6 @@ export interface Database {
           preferences: Record<string, unknown>;
           disabled: boolean;
           vendor_status: VendorStatus;
-          plan_id: 'free' | 'pro';
-          pending_plan_id: 'free' | 'pro';
           business_name: string | null;
           business_description: string | null;
           business_logo: string | null;
@@ -374,41 +360,6 @@ export interface Database {
           document_type: 'national_id' | 'hotel_document' | 'business_document';
           file_url: string;
           status: 'pending' | 'approved' | 'rejected';
-        }>;
-      };
-      vendor_plans: {
-        Row: VendorPlanRow;
-        Insert: Partial<VendorPlanRow>;
-        Update: Partial<VendorPlanRow>;
-      };
-      vendor_plan_payments: {
-        Row: {
-          id: string;
-          vendor_id: string;
-          plan_id: 'free' | 'pro';
-          amount: number;
-          status: 'pending' | 'paid' | 'failed';
-          provider_reference: string;
-          provider_session_id: string | null;
-          checkout_url: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: Partial<{
-          id: string;
-          vendor_id: string;
-          plan_id: 'free' | 'pro';
-          amount: number;
-          status: 'pending' | 'paid' | 'failed';
-          provider_reference: string;
-          provider_session_id: string | null;
-          checkout_url: string | null;
-        }>;
-        Update: Partial<{
-          status: 'pending' | 'paid' | 'failed';
-          provider_reference: string;
-          provider_session_id: string | null;
-          checkout_url: string | null;
         }>;
       };
       transactions: {

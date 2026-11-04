@@ -1,19 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function MobileAuthHero() {
-  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
 
   return (
-    <View pointerEvents="none" style={[styles.hero, { height: 300 + insets.top }]}>
-      <View style={[styles.ring, styles.ringLarge, { top: insets.top - 28, left: -width * 0.18 }]} />
-      <View style={[styles.ring, styles.ringMedium, { top: insets.top + 13, left: -width * 0.08 }]} />
-      <View style={[styles.ring, styles.ringSmall, { top: insets.top + 37, left: -width * 0.015 }]} />
-      <View style={[styles.ring, styles.ringLarge, { top: insets.top + 36, right: -width * 0.52 }]} />
-      <View style={[styles.ring, styles.ringMedium, { top: insets.top + 75, right: -width * 0.34 }]} />
-      <View style={[styles.brand, { top: insets.top + 18 }]}>
+    <View pointerEvents="none" style={styles.hero}>
+      <View style={[styles.ring, styles.ringLarge, { top: -28, left: -width * 0.18 }]} />
+      <View style={[styles.ring, styles.ringMedium, { top: 13, left: -width * 0.08 }]} />
+      <View style={[styles.ring, styles.ringSmall, { top: 37, left: -width * 0.015 }]} />
+      <View style={[styles.ring, styles.ringLarge, { top: 36, right: -width * 0.52 }]} />
+      <View style={[styles.ring, styles.ringMedium, { top: 75, right: -width * 0.34 }]} />
+      <View style={[styles.brand, { top: 18 }]}>
         <View style={styles.brandIcon}>
           <Ionicons name="bed" size={18} color="#FFFFFF" />
         </View>
@@ -22,8 +20,8 @@ export default function MobileAuthHero() {
           <Text style={styles.brandTagline}>FIND YOUR PLACE</Text>
         </View>
       </View>
-      <View style={[styles.whiteWave, { top: insets.top + 181 }]} />
-      <View style={[styles.whiteBase, { top: insets.top + 248 }]} />
+      <View style={[styles.whiteWave, { top: 181 }]} />
+      <View style={[styles.whiteBase, { top: 248 }]} />
     </View>
   );
 }

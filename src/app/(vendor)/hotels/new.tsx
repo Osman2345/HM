@@ -40,6 +40,17 @@ const splitList = (value: string) =>
 
 const isValidHttpUrl = (value: string) => /^https?:\/\/\S+$/i.test(value);
 
+const getFailureMessage = (cause: unknown, fallback: string) => {
+  if (cause instanceof Error && cause.message.trim()) return cause.message;
+  if (typeof cause === 'string' && cause.trim()) return cause;
+  if (cause && typeof cause === 'object' && 'message' in cause && typeof cause.message === 'string') {
+    const details = 'details' in cause && typeof cause.details === 'string' ? cause.details : '';
+    const hint = 'hint' in cause && typeof cause.hint === 'string' ? cause.hint : '';
+    return [cause.message, details, hint].filter(Boolean).join(' ');
+  }
+  return fallback;
+};
+
 const imageMimeTypes = new Set([
   'image/jpeg',
   'image/png',
@@ -113,14 +124,14 @@ const uploadListingImages = async (
         }
       }
       if (failure?.status === 'rejected') {
-        throw failure.reason;
+        throw new Error(getFailureMessage(failure.reason, 'A selected hotel photo could not be uploaded.'));
       }
     }
   } catch (caughtError) {
     if (paths.length) {
       const { error: cleanupError } = await supabase.storage.from('hotel-images').remove(paths);
       if (cleanupError) {
-        const message = caughtError instanceof Error ? caughtError.message : 'The photo upload failed.';
+        const message = getFailureMessage(caughtError, 'The photo upload failed.');
         throw new Error(`${message} Cleanup of partially uploaded photos also failed: ${cleanupError.message}`);
       }
     }
@@ -134,7 +145,7 @@ const cleanupUploadedImages = async (paths: string[], cause: unknown): Promise<n
   if (paths.length) {
     const { error } = await supabase.storage.from('hotel-images').remove(paths);
     if (error) {
-      const message = cause instanceof Error ? cause.message : 'Unable to save the property.';
+      const message = getFailureMessage(cause, 'Unable to save the property.');
       throw new Error(`${message} Uploaded photos could not be cleaned up: ${error.message}`);
     }
   }
@@ -247,7 +258,7 @@ export default function VendorHotelEditorScreen() {
         }
       }
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : 'Unable to open your photos.');
+      setError(getFailureMessage(caughtError, 'Unable to open your photos.'));
     }
   };
 
@@ -294,7 +305,7 @@ export default function VendorHotelEditorScreen() {
         updateRoom(formId, { newImages: [...room.newImages, ...result.assets].slice(0, remaining) });
       }
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : 'Unable to open your photos.');
+      setError(getFailureMessage(caughtError, 'Unable to open your photos.'));
     }
   };
 
@@ -434,12 +445,12 @@ export default function VendorHotelEditorScreen() {
       invalidateCached(`vendor-dashboard:${userId}`);
       router.replace('/(vendor)/hotels');
     } catch (caughtError) {
-      const message = caughtError instanceof Error ? caughtError.message : 'Unable to save the property.';
+      const message = getFailureMessage(caughtError, 'Unable to save the property.');
       if (uploaded.paths.length) {
         try {
           await cleanupUploadedImages(uploaded.paths, caughtError);
         } catch (cleanupError) {
-          setError(cleanupError instanceof Error ? cleanupError.message : message);
+          setError(getFailureMessage(cleanupError, message));
           return;
         }
       }

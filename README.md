@@ -139,6 +139,12 @@ administrator-configured booking commission. Vendor documents remain in
 a private Storage bucket; administrators and the document owner use
 short-lived signed links to view them. Earnings are recorded for dashboard
 display only; the project does not automatically transfer payouts.
+Apply `0036_reserved_not_paid_payment_status.sql` and
+`0037_vendor_commission_due.sql` for Pay-at-Hotel commission tracking. Then
+apply `0038_remove_vendor_pro_listing_gate.sql` to remove any legacy one-time
+PRO payment trigger and plan-based listing cap that may still be active in an
+existing database. Approved-vendor and property-ownership checks remain
+enforced.
 
 To delete a user, use **Authentication → Users** in the Supabase dashboard, or
 delete the matching row from `public.users` after applying migration 0008. If
@@ -191,6 +197,31 @@ and verifies the checkout session against Monime's API before marking a
 booking paid. Never put `MONIME_ACCESS_TOKEN`, `SUPABASE_SECRET_KEY`, or
 `SUPABASE_SERVICE_ROLE_KEY` in the project-root `.env`, an `EXPO_PUBLIC_*` variable,
 `server/.env.example`, or app code.
+
+## AI Setup for WAIIS 2026
+
+SL STAY's hotel search includes a real Groq-powered recommendation endpoint
+using GPT-OSS 120B (`openai/gpt-oss-120b`). The Groq secret must stay on the Express backend; it is never
+sent to or bundled in the Expo app.
+
+1. Get a free API key at [console.groq.com](https://console.groq.com).
+2. Copy `.env.local.example` to `.env.local`, or add the value to
+   `server/.env`.
+3. Set `GROQ_API_KEY=gsk_...` in that backend environment file. Do not use an
+   `EXPO_PUBLIC_` prefix for this secret.
+4. Configure `SUPABASE_URL` and `SUPABASE_SECRET_KEY` in `server/.env` to
+   recommend live hotels. Without those backend database settings, AI search
+   uses clearly labeled demo hotels.
+5. Install backend dependencies with `npm install --prefix server`, then start
+   or restart the backend using `npm run server`.
+6. Open Search in SL STAY and ask for a recommendation, for example
+   “cheap hotel near Lumley with AC and wifi under Le 500”.
+
+Without a Groq key, the app displays setup instructions and uses a clearly
+identified keyword fallback. If the live hotel catalogue is empty or the
+backend database is not configured, the recommendation endpoint uses clearly
+labeled demo hotels. Orange Money remains in TEST mode and is not changed by
+the AI feature.
 
 ## Get a fresh project
 

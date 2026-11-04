@@ -6,7 +6,6 @@ import {
   Modal,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -14,6 +13,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/store/auth.store';
 import { supabase } from '@/lib/supabase';
 
@@ -45,7 +45,7 @@ const adminItems = [
 
 const vendorItems = [
   { label: 'Dashboard', href: '/(vendor)/dashboard', icon: 'grid-outline' },
-  { label: 'Rooms', href: '/(vendor)/hotels', icon: 'business-outline' },
+  { label: 'Hotels', href: '/(vendor)/hotels', icon: 'business-outline' },
   { label: 'Bookings', href: '/(vendor)/bookings', icon: 'calendar-outline' },
   { label: 'Earnings', href: '/(vendor)/payouts', icon: 'wallet-outline' },
   { label: 'Settings', href: '/(vendor)/profile', icon: 'person-outline' },
@@ -57,6 +57,7 @@ export function AdminSidebarLayout() {
       brand="SL STAY"
       description="ADMINISTRATION"
       items={adminItems}
+      showSignOut
     />
   );
 }
@@ -134,7 +135,7 @@ function RoleSidebarLayout({ brand, description, items, showSignOut = false }: R
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['right', 'bottom', 'left']}>
       <View style={styles.shell}>
         {wideLayout ? navigation : null}
         <View style={styles.main}>

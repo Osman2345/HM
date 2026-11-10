@@ -124,13 +124,11 @@ export default function RegisterScreen() {
             </Text>
           </TouchableOpacity>
         </Link>
-        {Platform.OS === 'web' ? (
-          <Link href="/login?audience=vendor" asChild>
-            <TouchableOpacity style={styles.vendorLink}>
-              <Text style={styles.vendorLinkText}>Sign in as a vendor</Text>
-            </TouchableOpacity>
-          </Link>
-        ) : null}
+        <Link href="/login?audience=vendor" asChild>
+          <TouchableOpacity style={styles.vendorLink}>
+            <Text style={styles.vendorLinkText}>Sign in as a vendor</Text>
+          </TouchableOpacity>
+        </Link>
       </ScrollView>
     </View>
   );

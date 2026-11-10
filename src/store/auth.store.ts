@@ -192,6 +192,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             return;
           }
 
+          if (get().profile !== fallbackProfile) {
+            return;
+          }
+
           set({
             session: nextSession,
             profile: fallbackProfile,
@@ -224,14 +228,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signIn: async (email: string, password: string) => {
     set({ loading: true, error: null });
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      if (!data.session?.user) {
+        throw new Error('Sign-in did not return an active session. Please try again.');
+      }
 
-    if (error) {
-      set({ loading: false, error: error.message });
-      throw error;
+      const profile = await fetchProfile(data.session.user.id);
+      const authenticatedProfile = profile ?? toProfile(data.session.user);
+      set({
+        session: data.session,
+        profile: authenticatedProfile,
+        role: authenticatedProfile.role,
+        loading: false,
+        error: null,
+      });
+    } catch (caughtError) {
+      const message = caughtError instanceof Error ? caughtError.message : 'Unable to load your account profile.';
+      set({ loading: false, error: message });
+      throw caughtError;
     }
-
-    set({ loading: false, error: null });
   },
 
   signUp: async (

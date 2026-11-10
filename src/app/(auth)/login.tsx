@@ -15,7 +15,7 @@ export default function LoginScreen() {
   const bookingHotelId = typeof params.bookingHotelId === 'string' ? params.bookingHotelId : undefined;
   const vendorApplicationIncomplete = params.vendorApplicationIncomplete === 'true';
   const vendorAudience = params.audience === 'vendor';
-  const signIn = useAuthStore((state: { signIn: (email: string, password: string) => Promise<void> }) => state.signIn);
+  const signIn = useAuthStore((state) => state.signIn);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -24,12 +24,32 @@ export default function LoginScreen() {
     setError(null);
     try {
       await signIn(email, password);
+      const profile = useAuthStore.getState().profile;
+      if (!profile) {
+        throw new Error('Your account profile could not be loaded. Please try signing in again.');
+      }
+
+      if (profile.disabled) {
+        router.replace('/(auth)/account-disabled');
+        return;
+      }
+
+      if (profile.role === 'admin') {
+        router.replace('/(admin)/dashboard');
+        return;
+      }
+
+      if (profile.role === 'vendor') {
+        router.replace(profile.vendor_status === 'approved' ? '/(vendor)/dashboard' : '/(auth)/vendor-pending');
+        return;
+      }
+
       if (bookingHotelId) {
         router.replace({ pathname: '/booking/new', params: { hotelId: bookingHotelId } });
         return;
       }
 
-      router.replace('/');
+      router.replace('/(tabs)');
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Unable to sign in');
     }
@@ -38,12 +58,6 @@ export default function LoginScreen() {
   return (
     <View style={styles.screen}>
       {Platform.OS === 'web' ? <MobileAuthHeader /> : <MobileAuthHero />}
-      {vendorAudience && Platform.OS !== 'web' ? (
-        <View style={styles.mobileVendorNotice}>
-          <Text style={styles.mobileVendorNoticeTitle}>Partner sign in is available on web</Text>
-          <Link href="/(tabs)" style={styles.vendorLinkText}>Return to stays</Link>
-        </View>
-      ) : (
       <ScrollView
         style={Platform.OS !== 'web' ? styles.mobileScroll : undefined}
         contentContainerStyle={StyleSheet.flatten([
@@ -54,9 +68,7 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <Text style={StyleSheet.flatten([styles.title, Platform.OS !== 'web' && styles.mobileTitle])}>
-          {Platform.OS === 'web'
-            ? vendorAudience ? 'Partner sign in' : 'Welcome back'
-            : 'Sign in'}
+          {vendorAudience ? 'Partner sign in' : Platform.OS === 'web' ? 'Welcome back' : 'Sign in'}
         </Text>
         <Text style={styles.subtitle}>
           {vendorAudience ? 'Sign in to manage your property and bookings.' : 'Sign in to continue'}
@@ -119,17 +131,14 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </Link>
 
-        {Platform.OS === 'web' ? (
-          <Link href={vendorAudience ? '/register-vendor' : '/login?audience=vendor'} asChild>
-            <TouchableOpacity style={styles.vendorLink}>
-              <Text style={styles.vendorLinkText}>
-                {vendorAudience ? 'New partner? Create a vendor account' : 'Sign in as a vendor'}
-              </Text>
-            </TouchableOpacity>
-          </Link>
-        ) : null}
+        <Link href={vendorAudience ? '/register-vendor' : '/login?audience=vendor'} asChild>
+          <TouchableOpacity style={styles.vendorLink}>
+            <Text style={styles.vendorLinkText}>
+              {vendorAudience ? 'New partner? Create a vendor account' : 'Sign in as a vendor'}
+            </Text>
+          </TouchableOpacity>
+        </Link>
       </ScrollView>
-      )}
     </View>
   );
 }
@@ -270,20 +279,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     textDecorationLine: 'underline',
-  },
-  mobileVendorNotice: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 14,
-    padding: 28,
-    backgroundColor: '#F8FAFC',
-  },
-  mobileVendorNoticeTitle: {
-    color: '#17354B',
-    fontSize: 18,
-    fontWeight: '700',
-    textAlign: 'center',
   },
   error: {
     color: '#DC2626',

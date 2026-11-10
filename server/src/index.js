@@ -908,7 +908,7 @@ app.put('/api/admin/bookings/:id/release', async (req, res) => {
       return res.status(409).json({ ok: false, error: 'Already released' });
     }
     if (
-      message.includes('Only Le 1 TEST bookings')
+      message.includes('Only TEST bookings')
       || message.includes('Complete the TEST payment')
       || message.includes('No pending vendor earnings')
       || message.includes('Cancelled or no-show bookings')
@@ -1043,6 +1043,10 @@ app.post('/api/payments/create', async (req, res) => {
     }
 
     const amount = Number(booking.total_price);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return res.status(400).json({ ok: false, error: 'Booking amount must be greater than zero' });
+    }
+
     if (isTestToken) {
       // Test tokens cannot use Checkout Sessions; live tokens continue through the real Monime checkout below.
       const reference = await supabaseAdminRequest('rpc/prepare_monime_test_payment', {
@@ -1059,7 +1063,7 @@ app.post('/api/payments/create', async (req, res) => {
           success: true,
           simulated: true,
           status: 'pending_test',
-          amount: 1,
+          amount,
           currency: 'SLE',
           pin: '1234',
           bookingId: booking.id,
@@ -1068,10 +1072,6 @@ app.post('/api/payments/create', async (req, res) => {
           mode: 'TEST',
         }),
       );
-    }
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-      return res.status(400).json({ ok: false, error: 'Booking amount must be greater than zero' });
     }
 
     const provider = 'monime';
@@ -1215,11 +1215,13 @@ app.post('/api/payments/verify', async (req, res) => {
   }
 
   const isTestToken = process.env.MONIME_ACCESS_TOKEN?.startsWith('mon_test_') === true;
+  const amount = Number(booking.total_price);
   const isSimulatedTestPayment = payment.payment_method === 'monime'
     && isTestToken
     && booking.is_test
-    && Number(booking.total_price) === 1
-    && Number(payment.amount) === 1
+    && Number.isFinite(amount)
+    && amount > 0
+    && Number(payment.amount) === amount
     && !payment.provider_session_id;
   if (isSimulatedTestPayment) {
     if (payment.status === 'paid' && booking.payment_status === 'paid') {
@@ -1228,7 +1230,7 @@ app.post('/api/payments/verify', async (req, res) => {
           success: true,
           verified: true,
           simulated: true,
-          data: { reference, status: 'success', amount: 1, currency: 'SLE' },
+          data: { reference, status: 'success', amount, currency: 'SLE' },
         }),
       );
     }
@@ -1265,7 +1267,7 @@ app.post('/api/payments/verify', async (req, res) => {
         data: {
           reference,
           status: 'success',
-          amount: 1,
+          amount,
           currency: 'SLE',
           method: testMethod,
           phone: testPhone,

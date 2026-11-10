@@ -141,7 +141,9 @@ export default function BookingDetailsScreen() {
   }, []);
 
   const isPendingTest = booking?.is_test === true && booking.payment_status === 'pending';
-  const isTestDemo = booking?.is_test === true && Number(booking.total_price) === 1;
+  const isTestDemo = booking?.is_test === true && booking.payment_method === 'monime';
+  const bookingTotal = Number(booking?.total_price ?? 0);
+  const formattedBookingTotal = bookingTotal.toLocaleString('en-SL');
   const paymentLabel = testPaymentSuccess
     ? 'test_success'
     : isPendingTest
@@ -263,7 +265,7 @@ export default function BookingDetailsScreen() {
           />
         </View>
         <Text style={styles.eyebrow}>{booking.payment_method === 'pay_at_hotel' && !bookingCancelled && !noShow ? 'BOOKING RESERVED' : testPaymentComplete ? 'TEST PAYMENT SIMULATED' : isPendingTest ? 'TEST MODE' : noShow ? 'NO-SHOW RECORDED' : paymentComplete ? 'YOU’RE ALL SET' : bookingConfirmed ? 'RESERVATION CONFIRMED' : bookingCancelled ? 'BOOKING CANCELLED' : paymentFailed ? 'PAYMENT NOT COMPLETED' : 'ALMOST THERE'}</Text>
-        <Text style={styles.heading}>{booking.payment_method === 'pay_at_hotel' && !bookingCancelled && !noShow ? 'Booking Reserved!' : testPaymentComplete ? 'Payment Success - TEST Le 1' : isPendingTest ? 'TEST MODE Enter PIN 1234' : noShow ? 'This booking was marked no-show' : paymentComplete ? 'Booking confirmed' : bookingConfirmed ? 'Reservation confirmed' : bookingCancelled ? 'This booking is cancelled' : paymentFailed ? 'Payment failed' : 'Complete your booking'}</Text>
+        <Text style={styles.heading}>{booking.payment_method === 'pay_at_hotel' && !bookingCancelled && !noShow ? 'Booking Reserved!' : testPaymentComplete ? `Payment Success - TEST Le ${formattedBookingTotal}` : isPendingTest ? 'TEST MODE Enter PIN 1234' : noShow ? 'This booking was marked no-show' : paymentComplete ? 'Booking confirmed' : bookingConfirmed ? 'Reservation confirmed' : bookingCancelled ? 'This booking is cancelled' : paymentFailed ? 'Payment failed' : 'Complete your booking'}</Text>
         <Text style={styles.subtitle}>
           {booking.payment_method === 'pay_at_hotel' && !bookingCancelled && !noShow
             ? `You will pay Le ${Number(booking.total_price ?? 0).toLocaleString('en-SL')} cash at hotel. Booking Code: ${booking.id.slice(0, 8).toUpperCase()}`
@@ -313,7 +315,7 @@ export default function BookingDetailsScreen() {
         <View style={styles.cardDivider} />
         <View style={styles.totalRow}>
           <View><Text style={styles.totalLabel}>Total price</Text><Text style={styles.totalHint}>Sierra Leonean leones (SLE)</Text></View>
-          <Text style={styles.totalAmount}>Le {Number(booking.total_price ?? 0).toLocaleString()}</Text>
+          <Text style={styles.totalAmount}>Le {formattedBookingTotal}</Text>
         </View>
       </View>
 
@@ -328,7 +330,7 @@ export default function BookingDetailsScreen() {
         <View style={styles.paymentDivider} />
         <View style={styles.paymentStateRow}>
           <Text style={styles.paymentStateLabel}>Payment status</Text>
-          <Text style={[styles.paymentStateValue, (paymentComplete || testPaymentComplete) && styles.paidText, isPendingTest && styles.testPendingText, paymentFailed && styles.failedText]}>{testPaymentComplete ? 'Payment Success - TEST Le 1' : isPendingTest ? 'Pending (TEST) - Le 1' : paymentComplete ? 'Paid' : paymentFailed ? 'Failed' : booking.payment_method === 'pay_at_hotel' ? 'Due at checkout' : paymentStatus === 'pending' ? 'Awaiting payment' : 'Not paid yet'}</Text>
+          <Text style={[styles.paymentStateValue, (paymentComplete || testPaymentComplete) && styles.paidText, isPendingTest && styles.testPendingText, paymentFailed && styles.failedText]}>{testPaymentComplete ? `Payment Success - TEST Le ${formattedBookingTotal}` : isPendingTest ? `Pending (TEST) - Le ${formattedBookingTotal}` : paymentComplete ? 'Paid' : paymentFailed ? 'Failed' : booking.payment_method === 'pay_at_hotel' ? 'Due at checkout' : paymentStatus === 'pending' ? 'Awaiting payment' : 'Not paid yet'}</Text>
         </View>
       </View>
 
@@ -368,7 +370,7 @@ export default function BookingDetailsScreen() {
       {isPendingTest && !paymentComplete && !testPaymentSuccess ? (
         <TouchableOpacity style={styles.primaryButton} onPress={() => setShowPay(true)}>
           <Ionicons name="card-outline" size={19} color="#FFFFFF" />
-          <Text style={styles.primaryButtonText}>Pay Le {Number(booking.total_price ?? 1).toLocaleString()}</Text>
+          <Text style={styles.primaryButtonText}>Pay Le {formattedBookingTotal}</Text>
         </TouchableOpacity>
       ) : null}
 
@@ -379,7 +381,7 @@ export default function BookingDetailsScreen() {
       <Text style={styles.footerNote}>{booking.payment_method === 'pay_at_hotel' ? 'Your voucher is issued once the hotel confirms the reservation.' : 'Your room is only confirmed once payment is complete.'}</Text>
       {showPay ? (
         <SLStayPayment
-          amount={Number(booking.total_price ?? 1)}
+          amount={bookingTotal}
           onClose={() => setShowPay(false)}
           onSuccess={confirmTestPayment}
         />

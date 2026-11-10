@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import MobileAuthHeader from '@/components/auth/MobileAuthHeader';
 import { buildBackendUrl, loadPlatformSettings, type PlatformSettings } from '@/lib/backend';
 import { useAuthStore } from '@/store/auth.store';
@@ -94,13 +94,6 @@ export default function RegisterVendorScreen() {
   return (
     <View style={styles.screen}>
       <MobileAuthHeader />
-      {Platform.OS !== 'web' ? (
-        <View style={styles.mobileVendorNotice}>
-          <Text style={styles.mobileVendorNoticeTitle}>Vendor registration is available on web</Text>
-          <Text style={styles.mobileVendorNoticeText}>Open SL Stay in a web browser to register your property.</Text>
-          <Link href="/(tabs)" style={styles.mobileVendorNoticeLink}>Browse stays</Link>
-        </View>
-      ) : (
       <ScrollView
         contentContainerStyle={[styles.container, styles.webContainer]}
         keyboardShouldPersistTaps="handled"
@@ -221,7 +214,6 @@ export default function RegisterVendorScreen() {
           </TouchableOpacity>
         </Link>
       </ScrollView>
-      )}
     </View>
   );
 }
@@ -247,33 +239,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: '#FFFFFF',
     boxShadow: '0px 8px 26px rgba(25, 56, 73, 0.08)',
-  },
-  mobileVendorNotice: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    padding: 28,
-    backgroundColor: '#F5F7F8',
-  },
-  mobileVendorNoticeTitle: {
-    color: '#17354B',
-    fontSize: 19,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  mobileVendorNoticeText: {
-    maxWidth: 320,
-    color: '#667783',
-    fontSize: 14,
-    lineHeight: 21,
-    textAlign: 'center',
-  },
-  mobileVendorNoticeLink: {
-    marginTop: 4,
-    color: '#087E8B',
-    fontSize: 14,
-    fontWeight: '700',
   },
   brandMark: {
     width: 42,

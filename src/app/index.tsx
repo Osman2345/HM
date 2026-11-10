@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
 import { useAuthStore } from '@/store/auth.store';
 
@@ -10,19 +10,9 @@ export default function IndexScreen() {
   const disabled = useAuthStore((state: { profile: { disabled?: boolean } | null }) => state.profile?.disabled ?? false);
   const vendorStatus = useAuthStore((state: { profile: { vendor_status?: string | null } | null }) => state.profile?.vendor_status ?? null);
   const loading = useAuthStore((state: { loading: boolean }) => state.loading);
-  const [splashDurationElapsed, setSplashDurationElapsed] = useState(Platform.OS === 'web');
 
   useEffect(() => {
-    if (Platform.OS === 'web') {
-      return;
-    }
-
-    const timer = setTimeout(() => setSplashDurationElapsed(true), 4000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (loading || (Platform.OS !== 'web' && !splashDurationElapsed)) {
+    if (loading) {
       return;
     }
 
@@ -36,28 +26,18 @@ export default function IndexScreen() {
       return;
     }
 
-    if (Platform.OS === 'web') {
-      router.replace('/(tabs)');
-      return;
-    }
-
     if (role === 'admin') {
       router.replace('/(admin)/dashboard');
       return;
     }
 
     if (role === 'vendor') {
-      if (vendorStatus === 'pending' || vendorStatus === 'rejected') {
-        router.replace('/(auth)/vendor-pending');
-        return;
-      }
-
-      router.replace('/(vendor)/dashboard');
+      router.replace(vendorStatus === 'approved' ? '/(vendor)/dashboard' : '/(auth)/vendor-pending');
       return;
     }
 
     router.replace('/(tabs)');
-  }, [disabled, loading, role, router, session, splashDurationElapsed, vendorStatus]);
+  }, [disabled, loading, role, router, session, vendorStatus]);
 
   if (Platform.OS !== 'web') {
     return (

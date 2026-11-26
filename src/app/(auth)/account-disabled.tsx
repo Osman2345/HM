@@ -46,6 +46,6 @@ const styles = StyleSheet.create({
   heading: { fontSize: 26, fontWeight: '700', color: '#0F172A', textAlign: 'center' },
   message: { marginTop: 12, color: '#475569', textAlign: 'center', lineHeight: 22 },
   error: { marginTop: 12, color: '#B91C1C', textAlign: 'center' },
-  button: { minHeight: 48, marginTop: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1D4ED8', borderRadius: 12 },
+  button: { minHeight: 48, marginTop: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: '#374151', borderRadius: 12 },
   buttonText: { color: '#FFFFFF', fontWeight: '700' },
 });

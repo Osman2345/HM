@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
   },
   link: {
     marginTop: 12,
-    color: '#2563EB',
+    color: '#4B5563',
     fontSize: 16,
   },
 });

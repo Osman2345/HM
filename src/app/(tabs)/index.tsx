@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link, useRouter } from 'expo-router';
+import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Image, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { supabase } from '@/lib/supabase';
@@ -55,17 +55,17 @@ export default function HomeScreen() {
     }
   }, []);
 
-  const loadHotelsFromCache = useCallback(() => loadCached('hotels:home', () => fetchHotels()), [fetchHotels]);
-
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     let active = true;
 
     const loadHotels = async () => {
+      setLoading(true);
+      setHotels([]);
+      setError(null);
       try {
-        const data = await loadHotelsFromCache();
+        const data = await loadCached('hotels:home', fetchHotels, 15000, true);
         if (active) {
           setHotels(data);
-          setError(null);
         }
       } catch (caughtError) {
         if (active) {
@@ -80,7 +80,7 @@ export default function HomeScreen() {
     return () => {
       active = false;
     };
-  }, [loadHotelsFromCache]);
+  }, [fetchHotels]));
 
 
   const retryHotels = async () => {
@@ -175,7 +175,7 @@ export default function HomeScreen() {
               <Image source={{ uri: hotel.cover_image }} style={styles.hotelImage} resizeMode="cover" />
             ) : (
               <View style={[styles.hotelImage, styles.imageFallback]}>
-                <Ionicons name="bed-outline" size={42} color="#8BA5B8" />
+                <Ionicons name="bed-outline" size={42} color="#94A3B8" />
               </View>
             )}
             <View style={styles.stayBadge}>
@@ -192,7 +192,7 @@ export default function HomeScreen() {
               <View style={styles.hotelTitleBlock}>
                 <Text style={styles.hotelName} numberOfLines={1}>{hotel.name}</Text>
                 <View style={styles.locationRow}>
-                  <Ionicons name="location-outline" size={15} color="#718397" />
+                  <Ionicons name="location-outline" size={15} color="#64748B" />
                   <Text style={styles.hotelCity}>{hotel.city}</Text>
                 </View>
               </View>
@@ -209,7 +209,7 @@ export default function HomeScreen() {
             <View style={styles.cardDivider} />
             <View style={styles.cardLinkRow}>
               <Text style={styles.viewStay}>View stay</Text>
-              <Ionicons name="arrow-forward" size={16} color="#087E8B" />
+              <Ionicons name="arrow-forward" size={16} color="#4B5563" />
             </View>
           </View>
         </TouchableOpacity>
@@ -246,7 +246,7 @@ export default function HomeScreen() {
               ? `${unreadNotifications} unread notifications`
               : 'Open notifications'}
           >
-            <Ionicons name="notifications-outline" size={20} color="#17354B" />
+            <Ionicons name="notifications-outline" size={20} color="#1F2937" />
             {unreadNotifications > 0 ? (
               <View style={styles.notificationBadge}>
                 <Text style={styles.notificationBadgeText}>
@@ -263,7 +263,7 @@ export default function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel="Open your account"
           >
-            <Ionicons name="person-outline" size={20} color="#17354B" />
+            <Ionicons name="person-outline" size={20} color="#1F2937" />
           </TouchableOpacity>
         </View>
       </View>
@@ -280,7 +280,7 @@ export default function HomeScreen() {
 
         <View style={[styles.searchPanel, desktopWeb && styles.searchPanelDesktop]}>
           <View style={styles.searchInputRow}>
-            <Ionicons name="location-outline" size={21} color="#087E8B" />
+            <Ionicons name="location-outline" size={21} color="#4B5563" />
             <TextInput
               value={destination}
               onChangeText={setDestination}
@@ -310,7 +310,7 @@ export default function HomeScreen() {
             <Text style={styles.sectionEyebrow}>START EXPLORING</Text>
             <Text style={styles.sectionTitle}>Popular places</Text>
           </View>
-          <Ionicons name="compass-outline" size={25} color="#087E8B" />
+          <Ionicons name="compass-outline" size={25} color="#4B5563" />
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cityList}>
           {popularCities.map((city, index) => (
@@ -318,7 +318,7 @@ export default function HomeScreen() {
               <Ionicons
                 name={index === 0 ? 'sunny-outline' : 'location-outline'}
                 size={15}
-                color={index === 0 ? '#B77A1C' : '#087E8B'}
+                color={index === 0 ? '#B77A1C' : '#4B5563'}
               />
               <Text style={styles.cityChipText}>{city}</Text>
             </TouchableOpacity>
@@ -334,12 +334,12 @@ export default function HomeScreen() {
           </View>
           <TouchableOpacity style={styles.seeAllButton} onPress={() => searchFor('')}>
             <Text style={styles.seeAllText}>See all</Text>
-            <Ionicons name="arrow-forward" size={15} color="#087E8B" />
+            <Ionicons name="arrow-forward" size={15} color="#4B5563" />
           </TouchableOpacity>
         </View>
         {loading ? (
           <View style={styles.emptyState}>
-            <Ionicons name="bed-outline" size={24} color="#8BA5B8" />
+            <Ionicons name="bed-outline" size={24} color="#94A3B8" />
             <Text style={styles.state}>Finding lovely places to stay…</Text>
           </View>
         ) : null}
@@ -358,7 +358,7 @@ export default function HomeScreen() {
         ) : null}
         {!loading && !error && hotels.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="home-outline" size={26} color="#8BA5B8" />
+            <Ionicons name="home-outline" size={26} color="#94A3B8" />
             <Text style={styles.state}>New stays are on their way.</Text>
           </View>
         ) : null}
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 13,
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -423,17 +423,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2B544',
   },
   brandName: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 18,
     fontWeight: '800',
     letterSpacing: 1.1,
   },
   brandNameAccent: {
-    color: '#087E8B',
+    color: '#4B5563',
   },
   brandTagline: {
     marginTop: 1,
-    color: '#82909B',
+    color: '#9CA3AF',
     fontSize: 8,
     fontWeight: '700',
     letterSpacing: 1.5,
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F0F5F5',
+    backgroundColor: '#F3F4F6',
     borderWidth: 1,
     borderColor: '#E0E9E9',
   },
@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingTop: 30,
     paddingBottom: 24,
-    backgroundColor: '#123A50',
+    backgroundColor: '#111827',
   },
   heroDesktop: {
     paddingHorizontal: 56,
@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
     width: 250,
     height: 250,
     borderRadius: 125,
-    backgroundColor: '#1B5363',
+    backgroundColor: '#374151',
     opacity: 0.56,
   },
   heroEyebrow: {
@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2B544',
   },
   heroEyebrowText: {
-    color: '#D4E2E6',
+    color: '#E5E7EB',
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 1.6,
@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     paddingVertical: 9,
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 14,
   },
   searchButton: {
@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   searchButtonText: {
     color: '#FFFFFF',
@@ -581,21 +581,21 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   locationSectionEyebrow: {
-    color: '#0A6A73',
+    color: '#4B5563',
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 1.4,
   },
   locationSectionTitle: {
     marginTop: 6,
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 21,
     fontWeight: '800',
     letterSpacing: -0.3,
   },
   locationSectionText: {
     marginTop: 8,
-    color: '#5E7382',
+    color: '#64748B',
     fontSize: 13,
     lineHeight: 19,
   },
@@ -606,7 +606,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   locationActionText: {
     color: '#FFFFFF',
@@ -634,7 +634,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EAF6F6',
   },
   mapOpenButtonText: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 11,
     fontWeight: '800',
   },
@@ -649,7 +649,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#EAF5F7',
     borderWidth: 1,
-    borderColor: '#CFE1E6',
+    borderColor: '#E5E7EB',
     overflow: 'hidden',
   },
   mapGridOverlay: {
@@ -664,7 +664,7 @@ const styles = StyleSheet.create({
     right: 0,
     top: 64,
     height: 22,
-    backgroundColor: '#CCE3E8',
+    backgroundColor: '#E5E7EB',
     transform: [{ rotate: '-8deg' }],
     opacity: 0.75,
   },
@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
     right: 0,
     top: 120,
     height: 18,
-    backgroundColor: '#D2E7EA',
+    backgroundColor: '#E5E7EB',
     transform: [{ rotate: '9deg' }],
     opacity: 0.8,
   },
@@ -684,7 +684,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 120,
     width: 20,
-    backgroundColor: '#D2E5EA',
+    backgroundColor: '#E5E7EB',
     transform: [{ rotate: '7deg' }],
     opacity: 0.7,
   },
@@ -694,7 +694,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     right: 78,
     width: 18,
-    backgroundColor: '#D5E8EC',
+    backgroundColor: '#E5E7EB',
     transform: [{ rotate: '-10deg' }],
     opacity: 0.7,
   },
@@ -702,7 +702,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 24,
     top: 22,
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.8,
@@ -711,7 +711,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 18,
     bottom: 22,
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.8,
@@ -721,7 +721,7 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 10,
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
     borderWidth: 3,
     borderColor: '#FFFFFF',
     shadowColor: '#0F172A',
@@ -743,14 +743,14 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#D8EAF0',
+    borderColor: '#E5E7EB',
   },
   mapHotelPillSelected: {
     backgroundColor: '#EAF7F8',
-    borderColor: '#087E8B',
+    borderColor: '#4B5563',
   },
   mapHotelPillText: {
-    color: '#1D3C4C',
+    color: '#1F2937',
     fontSize: 11,
     fontWeight: '700',
     maxWidth: 160,
@@ -765,14 +765,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sectionEyebrow: {
-    color: '#82909B',
+    color: '#9CA3AF',
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 1.5,
   },
   sectionTitle: {
     marginTop: 4,
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 21,
     fontWeight: '800',
     letterSpacing: -0.3,
@@ -818,7 +818,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   seeAllText: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -839,7 +839,7 @@ const styles = StyleSheet.create({
   hotelPhotoWrap: {
     height: 192,
     position: 'relative',
-    backgroundColor: '#E8EFF0',
+    backgroundColor: '#E5E7EB',
   },
   hotelImage: {
     width: '100%',
@@ -881,7 +881,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   ratingText: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 12,
     fontWeight: '800',
   },
@@ -898,7 +898,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   hotelName: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 17,
     fontWeight: '800',
   },
@@ -909,14 +909,14 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   hotelCity: {
-    color: '#718397',
+    color: '#64748B',
     fontSize: 12,
   },
   priceBlock: {
     alignItems: 'flex-end',
   },
   price: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -927,7 +927,7 @@ const styles = StyleSheet.create({
   },
   description: {
     marginTop: 11,
-    color: '#667783',
+    color: '#6B7280',
     fontSize: 12,
     lineHeight: 18,
   },
@@ -943,7 +943,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   viewStay: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 12,
     fontWeight: '800',
   },
@@ -960,7 +960,7 @@ const styles = StyleSheet.create({
     borderColor: '#E6EBEC',
   },
   state: {
-    color: '#718397',
+    color: '#64748B',
     fontSize: 13,
   },
   error: {
@@ -974,7 +974,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 9,
     borderRadius: 9,
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   retryText: {
     color: '#FFFFFF',
@@ -989,7 +989,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   footerText: {
-    color: '#718397',
+    color: '#64748B',
     fontSize: 11,
     fontWeight: '600',
   },

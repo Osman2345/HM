@@ -1,4 +1,4 @@
-﻿import * as DocumentPicker from 'expo-document-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -184,17 +184,17 @@ export default function VendorPendingScreen() {
     return (
       <ScrollView contentContainerStyle={styles.confirmationContainer}>
         <View style={styles.confirmationIcon}>
-          <Text style={styles.confirmationIconText}>✓</Text>
+          <Text style={styles.confirmationIconText}>?</Text>
         </View>
         <Text style={styles.eyebrow}>APPLICATION SUBMITTED</Text>
-        <Text style={styles.confirmationTitle}>You’re all set</Text>
+        <Text style={styles.confirmationTitle}>Youre all set</Text>
         <Text style={styles.confirmationSubtitle}>
           Your three documents have been received and your vendor account is pending admin review.
         </Text>
         <View style={styles.confirmationCard}>
           <Text style={styles.confirmationCardTitle}>What happens next?</Text>
           <Text style={styles.confirmationCardText}>
-            We’ll notify you by email at {session?.user.email ?? 'your registered email'} when the admin accepts or declines your application.
+            Well notify you by email at {session?.user.email ?? 'your registered email'} when the admin accepts or declines your application.
           </Text>
           <View style={styles.pendingBadge}>
             <View style={styles.pendingDot} />
@@ -216,7 +216,7 @@ export default function VendorPendingScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.iconCircle}>
-        <Text style={styles.iconText}>{allDocumentsSubmitted ? '✓' : '3'}</Text>
+        <Text style={styles.iconText}>{allDocumentsSubmitted ? '?' : '3'}</Text>
       </View>
       <Text style={styles.eyebrow}>VENDOR REVIEW</Text>
       <Text style={styles.title}>
@@ -240,7 +240,7 @@ export default function VendorPendingScreen() {
                   {alreadySubmitted ? <Text style={styles.badge}>Submitted</Text> : null}
                 </View>
                 <Text style={styles.docHint}>{doc.hint}</Text>
-                <Text style={styles.docHint}>PDF, JPG, or PNG · Maximum 5 MB</Text>
+                <Text style={styles.docHint}>PDF, JPG, or PNG  Maximum 5 MB</Text>
                 <TouchableOpacity style={styles.selectButton} onPress={() => void selectDocument(doc.type)}>
                   <Text style={styles.selectButtonText}>{selected ? selected.name : `Choose ${doc.label}`}</Text>
                 </TouchableOpacity>
@@ -261,13 +261,13 @@ export default function VendorPendingScreen() {
             accessibilityState={{ checked: documentsConfirmed }}
           >
             <View style={[styles.checkbox, documentsConfirmed && styles.checkboxChecked]}>
-              {documentsConfirmed ? <Text style={styles.checkboxMark}>✓</Text> : null}
+              {documentsConfirmed ? <Text style={styles.checkboxMark}>?</Text> : null}
             </View>
             <Text style={styles.confirmText}>I confirm these documents are genuine and belong to my business.</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.primaryButton} onPress={() => void uploadDocuments()} disabled={busy}>
-            <Text style={styles.primaryButtonText}>{busy ? 'Submitting…' : 'Submit for review'}</Text>
+            <Text style={styles.primaryButtonText}>{busy ? 'Submitting' : 'Submit for review'}</Text>
           </TouchableOpacity>
         </View>
       ) : null}
@@ -317,17 +317,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   confirmationIconText: {
-    color: '#0F766E',
+    color: '#4B5563',
     fontSize: 32,
     fontWeight: '800',
   },
   confirmationTitle: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 32,
     fontWeight: '800',
   },
   confirmationSubtitle: {
-    color: '#53657A',
+    color: '#64748B',
     fontSize: 15,
     lineHeight: 23,
   },
@@ -341,12 +341,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   confirmationCardTitle: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 16,
     fontWeight: '800',
   },
   confirmationCardText: {
-    color: '#53657A',
+    color: '#64748B',
     fontSize: 14,
     lineHeight: 21,
   },
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   homeButtonText: {
     color: '#FFFFFF',
@@ -388,28 +388,28 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 18,
-    backgroundColor: '#E8F5F3',
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconText: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 22,
     fontWeight: '800',
   },
   eyebrow: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 12,
     letterSpacing: 1.2,
     fontWeight: '700',
   },
   title: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 28,
     fontWeight: '800',
   },
   subtitle: {
-    color: '#53657A',
+    color: '#64748B',
     fontSize: 14,
     lineHeight: 21,
   },
@@ -432,7 +432,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   docLabel: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 16,
     fontWeight: '800',
     flex: 1,
@@ -441,14 +441,14 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     textTransform: 'uppercase',
-    color: '#0F766E',
+    color: '#4B5563',
     backgroundColor: '#DFF7F3',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 999,
   },
   docHint: {
-    color: '#718397',
+    color: '#64748B',
     fontSize: 12,
   },
   confirmRow: {
@@ -468,8 +468,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   checkboxChecked: {
-    borderColor: '#087E8B',
-    backgroundColor: '#087E8B',
+    borderColor: '#4B5563',
+    backgroundColor: '#4B5563',
   },
   checkboxMark: {
     color: '#FFFFFF',
@@ -489,7 +489,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   selectButtonText: {
-    color: '#17354B',
+    color: '#1F2937',
     fontWeight: '700',
   },
   fileName: {
@@ -502,13 +502,13 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   previewText: {
-    color: '#0F766E',
+    color: '#4B5563',
     fontWeight: '700',
     fontSize: 12,
   },
   primaryButton: {
     marginTop: 4,
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
     minHeight: 52,
     borderRadius: 12,
     alignItems: 'center',
@@ -524,14 +524,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EAF4FC',
+    backgroundColor: '#EFF6FF',
   },
   checkButtonText: {
-    color: '#17354B',
+    color: '#1F2937',
     fontWeight: '700',
   },
   message: {
-    color: '#0F766E',
+    color: '#4B5563',
     fontSize: 13,
     fontWeight: '600',
     marginTop: 4,

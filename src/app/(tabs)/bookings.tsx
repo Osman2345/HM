@@ -178,7 +178,7 @@ export default function BookingsScreen() {
             <Text style={styles.subtitle}>All your stays, together in one place.</Text>
           </View>
           <View style={styles.headerIcon}>
-            <Ionicons name="briefcase-outline" size={23} color="#087E8B" />
+            <Ionicons name="briefcase-outline" size={23} color="#4B5563" />
           </View>
         </View>
 
@@ -214,7 +214,7 @@ export default function BookingsScreen() {
 
         {loading ? (
           <View style={styles.stateCard}>
-            <Ionicons name="hourglass-outline" size={22} color="#087E8B" />
+            <Ionicons name="hourglass-outline" size={22} color="#4B5563" />
             <Text style={styles.stateText}>Loading your trips…</Text>
           </View>
         ) : null}
@@ -240,7 +240,7 @@ export default function BookingsScreen() {
           <View style={styles.emptyCard}>
             <View style={styles.emptyArtwork}>
               <View style={styles.artworkCircle}>
-                <Ionicons name="bed-outline" size={38} color="#087E8B" />
+                <Ionicons name="bed-outline" size={38} color="#4B5563" />
               </View>
               <View style={styles.artworkSparkle}><Ionicons name="sparkles" size={15} color="#C7892E" /></View>
               <View style={styles.artworkDot} />
@@ -295,7 +295,7 @@ export default function BookingsScreen() {
                 style={styles.exploreButton}
                 onPress={() => router.push('/search')}
               >
-                <Ionicons name="add" size={16} color="#087E8B" />
+                <Ionicons name="add" size={16} color="#4B5563" />
                 <Text style={styles.exploreButtonText}>Find a stay</Text>
               </TouchableOpacity>
             </View>
@@ -311,7 +311,7 @@ export default function BookingsScreen() {
                   <Link href={{ pathname: '/booking/[id]', params: { id: booking.id } }} asChild>
                     <TouchableOpacity style={styles.bookingCardMain} activeOpacity={0.86}>
                       <View style={styles.hotelIcon}>
-                        <Ionicons name="bed-outline" size={21} color="#087E8B" />
+                        <Ionicons name="bed-outline" size={21} color="#4B5563" />
                       </View>
                       <View style={styles.bookingDetails}>
                         <View style={styles.bookingTitleRow}>
@@ -331,10 +331,10 @@ export default function BookingsScreen() {
                           </View>
                         </View>
                         <Text style={styles.hotelLocation}>
-                          <Ionicons name="location-outline" size={12} color="#82939B" /> {booking.hotels?.city ?? 'Sierra Leone'}
+                          <Ionicons name="location-outline" size={12} color="#9CA3AF" /> {booking.hotels?.city ?? 'Sierra Leone'}
                         </Text>
                         <View style={styles.dateRow}>
-                          <Ionicons name="calendar-outline" size={14} color="#087E8B" />
+                          <Ionicons name="calendar-outline" size={14} color="#4B5563" />
                           <Text style={styles.dateText}>{formatDate(booking.check_in)} – {formatDate(booking.check_out)}</Text>
                         </View>
                         <View style={styles.bookingFooter}>
@@ -403,19 +403,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   eyebrow: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 1.4,
   },
   title: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 30,
     fontWeight: '900',
     marginTop: 5,
   },
   subtitle: {
-    color: '#819199',
+    color: '#94A3B8',
     fontSize: 12,
     marginTop: 4,
   },
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EAF5F4',
+    backgroundColor: '#F3F4F6',
   },
   filterBar: {
     flexDirection: 'row',
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
   },
   filterButtonSelected: {
     backgroundColor: '#FFFFFF',
-    shadowColor: '#17354B',
+    shadowColor: '#1F2937',
     shadowOpacity: 0.07,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },
@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   filterTextSelected: {
-    color: '#17354B',
+    color: '#1F2937',
     fontWeight: '800',
   },
   countBadge: {
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#DDE6E8',
   },
   countBadgeSelected: {
-    backgroundColor: '#EAF5F4',
+    backgroundColor: '#F3F4F6',
   },
   countText: {
     color: '#71838B',
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   countTextSelected: {
-    color: '#087E8B',
+    color: '#4B5563',
   },
   stateCard: {
     minHeight: 160,
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   stateText: {
-    color: '#718397',
+    color: '#64748B',
     fontSize: 12,
   },
   errorCard: {
@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 25,
     borderWidth: 1,
-    borderColor: '#E8EFF0',
+    borderColor: '#E5E7EB',
     borderRadius: 17,
     backgroundColor: '#FFFFFF',
   },
@@ -558,8 +558,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 50,
     borderWidth: 1,
-    borderColor: '#CFE5E1',
-    backgroundColor: '#F0FAF8',
+    borderColor: '#D1D5DB',
+    backgroundColor: '#F3F4F6',
   },
   artworkSparkle: {
     position: 'absolute',
@@ -582,14 +582,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2B544',
   },
   emptyTitle: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 18,
     fontWeight: '900',
     textAlign: 'center',
   },
   emptyText: {
     maxWidth: 390,
-    color: '#819199',
+    color: '#94A3B8',
     fontSize: 12,
     lineHeight: 19,
     marginTop: 8,
@@ -604,7 +604,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingHorizontal: 18,
     borderRadius: 11,
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   primaryButtonText: {
     color: '#FFFFFF',
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   textButtonText: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 11,
     fontWeight: '800',
   },
@@ -629,12 +629,12 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   listTitle: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 15,
     fontWeight: '800',
   },
   listSubtitle: {
-    color: '#8B9AA1',
+    color: '#94A3B8',
     fontSize: 10,
     marginTop: 4,
   },
@@ -645,16 +645,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 9,
-    backgroundColor: '#EAF5F4',
+    backgroundColor: '#F3F4F6',
   },
   exploreButtonText: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 10,
     fontWeight: '800',
   },
   bookingCard: {
     borderWidth: 1,
-    borderColor: '#E8EFF0',
+    borderColor: '#E5E7EB',
     borderRadius: 14,
     backgroundColor: '#FFFFFF',
     overflow: 'hidden',
@@ -686,7 +686,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 13,
-    backgroundColor: '#EAF5F4',
+    backgroundColor: '#F3F4F6',
   },
   bookingDetails: {
     flex: 1,
@@ -699,12 +699,12 @@ const styles = StyleSheet.create({
   },
   hotelName: {
     flex: 1,
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 12,
     fontWeight: '800',
   },
   hotelLocation: {
-    color: '#82939B',
+    color: '#9CA3AF',
     fontSize: 10,
     marginTop: 4,
   },
@@ -737,7 +737,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   dateText: {
-    color: '#526974',
+    color: '#64748B',
     fontSize: 10,
     fontWeight: '600',
   },
@@ -756,7 +756,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   paidBadge: {
-    backgroundColor: '#EAF5F4',
+    backgroundColor: '#F3F4F6',
   },
   unpaidBadge: {
     backgroundColor: '#FFF3E5',
@@ -767,7 +767,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   paidDot: {
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   unpaidDot: {
     backgroundColor: '#C47A2C',
@@ -778,19 +778,19 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   paidText: {
-    color: '#087E8B',
+    color: '#4B5563',
   },
   unpaidText: {
     color: '#AE6B20',
   },
   price: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 12,
     fontWeight: '900',
   },
   voucher: {
     marginTop: 7,
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 11,
     fontWeight: '800',
   },

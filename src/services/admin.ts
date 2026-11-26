@@ -1,5 +1,12 @@
 import { supabase } from '@/lib/supabase';
-import type { BookingStatus, HotelApprovalStatus, HotelRoom, UserRole } from '@/types/database';
+import type {
+  BookingStatus,
+  HotelApprovalStatus,
+  HotelRoom,
+  TransactionRow,
+  UserRole,
+  WithdrawalRequestRow,
+} from '@/types/database';
 
 export interface AdminUser {
   id: string;
@@ -97,6 +104,20 @@ export interface AdminOverview {
 
 export interface AdminReport {
   bookings: AdminBooking[];
+  transactions: Pick<
+    TransactionRow,
+    | 'id'
+    | 'booking_id'
+    | 'vendor_id'
+    | 'total_amount'
+    | 'commission_amount'
+    | 'hotel_payout_amount'
+    | 'vendor_payout_status'
+    | 'status'
+    | 'created_at'
+    | 'released_at'
+  >[];
+  withdrawals: WithdrawalRequestRow[];
   revenue: number;
   commission: number;
   newUsers: number;
@@ -314,18 +335,28 @@ export const loadAdminBookings = async (status: BookingStatus | 'all' | 'unpaid_
 export const loadAdminReport = async (periodDays: number): Promise<AdminReport> => {
   const periodEnd = new Date().toISOString();
   const since = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000).toISOString();
-  const [bookings, transactions, users] = await Promise.all([
+  const [bookings, transactions, withdrawals, users] = await Promise.all([
     supabase
       .from('bookings')
       .select('id, user_id, hotel_id, check_in, check_out, guests, rooms, total_price, payment_status, booking_status, is_test, payment_method, payment_type, commission, commission_status, created_at, users(fullname, email), hotels(name)')
       .gte('created_at', since)
       .order('created_at', { ascending: false }),
-    supabase.from('transactions').select('total_amount, commission_amount, created_at').gte('created_at', since),
+    supabase
+      .from('transactions')
+      .select('id, booking_id, vendor_id, total_amount, commission_amount, hotel_payout_amount, vendor_payout_status, status, created_at, released_at')
+      .gte('created_at', since)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('withdrawal_requests')
+      .select('*')
+      .gte('requested_at', since)
+      .order('requested_at', { ascending: false }),
     supabase.from('users').select('id', { count: 'exact', head: true }).gte('created_at', since),
   ]);
 
   const bookingRows = throwIfError(bookings.data ?? [], bookings.error) as AdminBooking[];
-  const transactionRows = throwIfError(transactions.data ?? [], transactions.error) as { total_amount: number; commission_amount: number }[];
+  const transactionRows = throwIfError(transactions.data ?? [], transactions.error) as AdminReport['transactions'];
+  const withdrawalRows = throwIfError(withdrawals.data ?? [], withdrawals.error) as WithdrawalRequestRow[];
   if (users.error) {
     throw new Error(users.error.message);
   }
@@ -344,6 +375,8 @@ export const loadAdminReport = async (periodDays: number): Promise<AdminReport> 
 
   return {
     bookings: bookingRows,
+    transactions: transactionRows,
+    withdrawals: withdrawalRows,
     revenue: transactionRows.reduce((sum, transaction) => sum + Number(transaction.total_amount), 0),
     commission: transactionRows.reduce((sum, transaction) => sum + Number(transaction.commission_amount), 0),
     newUsers: users.count ?? 0,

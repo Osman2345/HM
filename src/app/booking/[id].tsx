@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import QRCode from 'react-native-qrcode-svg';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -196,7 +197,10 @@ export default function BookingDetailsScreen() {
         setPaymentAuthorizationUrl(authorizationUrl);
       }
       if (!authorizationUrl) throw new Error('Monime did not return a checkout URL.');
-      await Linking.openURL(authorizationUrl);
+      const checkoutUrl = new URL(authorizationUrl);
+      if (checkoutUrl.protocol !== 'https:' && !checkoutUrl.hostname.includes('localhost')) {
+        throw new Error('The secure payment URL is invalid. Retry payment.');
+      }
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Unable to start payment');
     } finally {
@@ -238,7 +242,7 @@ export default function BookingDetailsScreen() {
   };
 
   if (loading) {
-    return <View style={styles.centerScreen}><ActivityIndicator color="#087E8B" /><Text style={styles.centerText}>Loading your booking…</Text></View>;
+    return <View style={styles.centerScreen}><ActivityIndicator color="#4B5563" /><Text style={styles.centerText}>Loading your booking…</Text></View>;
   }
   if (error && !booking) {
     return <View style={styles.centerScreen}><Ionicons name="alert-circle-outline" size={32} color="#B42318" /><Text style={styles.centerText}>{error}</Text><TouchableOpacity style={styles.secondaryButton} onPress={() => void loadBooking()}><Text style={styles.secondaryButtonText}>Try again</Text></TouchableOpacity></View>;
@@ -261,7 +265,7 @@ export default function BookingDetailsScreen() {
           <Ionicons
             name={(paymentComplete || bookingConfirmed || testPaymentComplete) && !noShow ? 'checkmark' : (paymentFailed || bookingCancelled || noShow) ? 'close' : 'card-outline'}
             size={25}
-            color={(paymentComplete || bookingConfirmed || testPaymentComplete) && !noShow ? '#027A48' : (paymentFailed || bookingCancelled || noShow) ? '#B42318' : '#087E8B'}
+            color={(paymentComplete || bookingConfirmed || testPaymentComplete) && !noShow ? '#027A48' : (paymentFailed || bookingCancelled || noShow) ? '#B42318' : '#4B5563'}
           />
         </View>
         <Text style={styles.eyebrow}>{booking.payment_method === 'pay_at_hotel' && !bookingCancelled && !noShow ? 'BOOKING RESERVED' : testPaymentComplete ? 'TEST PAYMENT SIMULATED' : isPendingTest ? 'TEST MODE' : noShow ? 'NO-SHOW RECORDED' : paymentComplete ? 'YOU’RE ALL SET' : bookingConfirmed ? 'RESERVATION CONFIRMED' : bookingCancelled ? 'BOOKING CANCELLED' : paymentFailed ? 'PAYMENT NOT COMPLETED' : 'ALMOST THERE'}</Text>
@@ -298,18 +302,18 @@ export default function BookingDetailsScreen() {
           </View>
         </View>
         <View style={styles.detailRow}>
-          <View style={styles.detailIcon}><Ionicons name="bed-outline" size={17} color="#087E8B" /></View>
+          <View style={styles.detailIcon}><Ionicons name="bed-outline" size={17} color="#4B5563" /></View>
           <View style={styles.detailCopy}><Text style={styles.detailLabel}>ROOM TYPE</Text><Text style={styles.detailValue}>{booking.room_type ?? 'Room'}</Text></View>
         </View>
         <View style={styles.detailRow}>
-          <View style={styles.detailIcon}><Ionicons name="calendar-outline" size={17} color="#087E8B" /></View>
+          <View style={styles.detailIcon}><Ionicons name="calendar-outline" size={17} color="#4B5563" /></View>
           <View style={styles.detailCopy}>
             <Text style={styles.detailLabel}>YOUR DATES · {nights} {nights === 1 ? 'NIGHT' : 'NIGHTS'}</Text>
             <Text style={styles.detailValue}>{prettyDate(booking.check_in)} — {prettyDate(booking.check_out)}</Text>
           </View>
         </View>
         <View style={styles.detailRow}>
-          <View style={styles.detailIcon}><Ionicons name="people-outline" size={17} color="#087E8B" /></View>
+          <View style={styles.detailIcon}><Ionicons name="people-outline" size={17} color="#4B5563" /></View>
           <View style={styles.detailCopy}><Text style={styles.detailLabel}>GUESTS & ROOMS</Text><Text style={styles.detailValue}>{booking.guests ?? 1} guests · {booking.rooms ?? 1} {booking.rooms === 1 ? 'room' : 'rooms'}</Text></View>
         </View>
         <View style={styles.cardDivider} />
@@ -321,12 +325,36 @@ export default function BookingDetailsScreen() {
 
       <View style={styles.paymentCard}>
         <View style={styles.paymentHeading}>
-          <View style={styles.paymentHeadingIcon}><Ionicons name="shield-checkmark-outline" size={19} color="#087E8B" /></View>
+          <View style={styles.paymentHeadingIcon}><Ionicons name="shield-checkmark-outline" size={19} color="#4B5563" /></View>
           <View>
             <Text style={styles.paymentTitle}>{isTestDemo ? 'TEST payment simulation' : booking.payment_method === 'pay_at_hotel' ? 'Pay at the hotel' : 'Secure payment'}</Text>
             <Text style={styles.paymentSubtitle}>{isTestDemo ? 'No real money will be moved.' : booking.payment_method === 'pay_at_hotel' ? 'Payment is recorded by the hotel at checkout.' : 'Protected checkout powered by Monime'}</Text>
           </View>
         </View>
+
+        {paymentAuthorizationUrl && !paymentComplete && !paymentFailed && !holdExpired ? (
+          <View style={styles.qrCard}>
+            <Text style={styles.qrTitle}>Scan to pay</Text>
+            <Text style={styles.qrSubtitle}>Open the secure Monime checkout with your phone camera.</Text>
+            <View style={styles.qrWrap}>
+              <QRCode
+                value={paymentAuthorizationUrl}
+                size={190}
+                color="#111827"
+                backgroundColor="#FFFFFF"
+                ecl="M"
+              />
+            </View>
+            <TouchableOpacity
+              accessibilityRole="button"
+              style={styles.qrOpenButton}
+              onPress={() => void Linking.openURL(paymentAuthorizationUrl)}
+            >
+              <Ionicons name="open-outline" size={18} color="#FFFFFF" />
+              <Text style={styles.qrOpenButtonText}>Open secure checkout</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
         <View style={styles.paymentDivider} />
         <View style={styles.paymentStateRow}>
           <Text style={styles.paymentStateLabel}>Payment status</Text>
@@ -336,7 +364,7 @@ export default function BookingDetailsScreen() {
 
       {booking.voucher_code ? (
         <View style={styles.voucherCard}>
-          <View style={styles.voucherIcon}><Ionicons name="ticket-outline" size={20} color="#087E8B" /></View>
+          <View style={styles.voucherIcon}><Ionicons name="ticket-outline" size={20} color="#4B5563" /></View>
           <View style={styles.voucherCopy}>
             <Text style={styles.voucherLabel}>BOOKING VOUCHER</Text>
             <Text selectable style={styles.voucherCode}>{booking.voucher_code}</Text>
@@ -374,10 +402,10 @@ export default function BookingDetailsScreen() {
         </TouchableOpacity>
       ) : null}
 
-      {paymentNotice ? <View style={styles.notice}><Ionicons name="information-circle-outline" size={18} color="#087E8B" /><Text style={styles.noticeText}>{paymentNotice} You can retry while your room hold is active.</Text></View> : null}
+      {paymentNotice ? <View style={styles.notice}><Ionicons name="information-circle-outline" size={18} color="#4B5563" /><Text style={styles.noticeText}>{paymentNotice} You can retry while your room hold is active.</Text></View> : null}
       {paymentVerifyError ? <View style={styles.errorNotice}><Ionicons name="warning-outline" size={18} color="#B42318" /><Text style={styles.errorNoticeText}>Payment status could not be verified: {paymentVerifyError}</Text></View> : null}
       {error ? <View style={styles.errorNotice}><Ionicons name="warning-outline" size={18} color="#B42318" /><Text style={styles.errorNoticeText}>{error}</Text></View> : null}
-      {verifyingPayment ? <View style={styles.verifying}><ActivityIndicator color="#087E8B" /><Text style={styles.verifyingText}>Verifying your payment securely…</Text></View> : null}
+      {verifyingPayment ? <View style={styles.verifying}><ActivityIndicator color="#4B5563" /><Text style={styles.verifyingText}>Verifying your payment securely…</Text></View> : null}
       <Text style={styles.footerNote}>{booking.payment_method === 'pay_at_hotel' ? 'Your voucher is issued once the hotel confirms the reservation.' : 'Your room is only confirmed once payment is complete.'}</Text>
       {showPay ? (
         <SLStayPayment
@@ -397,14 +425,14 @@ const styles = StyleSheet.create({
   centerText: { color: '#475569', textAlign: 'center', fontSize: 14, lineHeight: 21 },
   backButton: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 8, paddingRight: 10 },
   backText: { color: '#334155', fontSize: 14, fontWeight: '600' },
-  statusHero: { alignItems: 'center', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, backgroundColor: '#EAF7F7' },
+  statusHero: { alignItems: 'center', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, backgroundColor: '#F3F4F6' },
   statusHeroPaid: { backgroundColor: '#ECFDF3' },
   statusHeroFailed: { backgroundColor: '#FEF3F2' },
-  statusIcon: { width: 48, height: 48, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: '#D9F0F0', marginBottom: 11 },
+  statusIcon: { width: 48, height: 48, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F3F4F6', marginBottom: 11 },
   statusIconPaid: { backgroundColor: '#D1FADF' },
   statusIconFailed: { backgroundColor: '#FEE4E2' },
-  eyebrow: { color: '#087E8B', fontSize: 9, fontWeight: '800', letterSpacing: 1.5 },
-  heading: { color: '#102A36', fontSize: 23, fontWeight: '800', marginTop: 4, textAlign: 'center' },
+  eyebrow: { color: '#4B5563', fontSize: 9, fontWeight: '800', letterSpacing: 1.5 },
+  heading: { color: '#1F2937', fontSize: 23, fontWeight: '800', marginTop: 4, textAlign: 'center' },
   subtitle: { color: '#64748B', fontSize: 13, marginTop: 4 },
   holdBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFAEB', borderColor: '#FDE68A', borderWidth: 1, borderRadius: 15, padding: 13 },
   holdExpiredBanner: { backgroundColor: '#FEF3F2', borderColor: '#FECDCA' },
@@ -412,10 +440,10 @@ const styles = StyleSheet.create({
   holdTitle: { color: '#854A0E', fontSize: 12, fontWeight: '800' },
   holdSubtitle: { color: '#8A6A30', fontSize: 10, lineHeight: 15, marginTop: 3 },
   holdExpiredText: { color: '#B42318' },
-  card: { backgroundColor: '#FFFFFF', borderRadius: 19, borderWidth: 1, borderColor: '#E7EEF1', padding: 16 },
+  card: { backgroundColor: '#FFFFFF', borderRadius: 19, borderWidth: 1, borderColor: '#E5E7EB', padding: 16 },
   cardHeadingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 13, marginBottom: 1, borderBottomWidth: 1, borderBottomColor: '#EDF2F4' },
-  cardEyebrow: { color: '#81919A', fontSize: 9, fontWeight: '800', letterSpacing: 1.2 },
-  cardTitle: { color: '#102A36', fontSize: 16, fontWeight: '800', marginTop: 3 },
+  cardEyebrow: { color: '#94A3B8', fontSize: 9, fontWeight: '800', letterSpacing: 1.2 },
+  cardTitle: { color: '#1F2937', fontSize: 16, fontWeight: '800', marginTop: 3 },
   statusPill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FFFAEB', borderRadius: 20, paddingVertical: 6, paddingHorizontal: 9 },
   paidPill: { backgroundColor: '#ECFDF3' },
   failedPill: { backgroundColor: '#FEF3F2' },
@@ -426,41 +454,47 @@ const styles = StyleSheet.create({
   paidText: { color: '#027A48' },
   failedText: { color: '#B42318' },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 11, marginTop: 15 },
-  detailIcon: { width: 35, height: 35, borderRadius: 11, backgroundColor: '#EAF7F7', alignItems: 'center', justifyContent: 'center' },
+  detailIcon: { width: 35, height: 35, borderRadius: 11, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
   detailCopy: { flex: 1 },
-  detailLabel: { color: '#81919A', fontSize: 8, fontWeight: '800', letterSpacing: 1 },
-  detailValue: { color: '#243B46', fontSize: 12, fontWeight: '600', marginTop: 4 },
+  detailLabel: { color: '#94A3B8', fontSize: 8, fontWeight: '800', letterSpacing: 1 },
+  detailValue: { color: '#374151', fontSize: 12, fontWeight: '600', marginTop: 4 },
   cardDivider: { height: 1, backgroundColor: '#EDF2F4', marginTop: 16, marginBottom: 13 },
   totalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  totalLabel: { color: '#102A36', fontSize: 13, fontWeight: '800' },
-  totalHint: { color: '#81919A', fontSize: 9, marginTop: 3 },
-  totalAmount: { color: '#087E8B', fontSize: 20, fontWeight: '800' },
-  paymentCard: { backgroundColor: '#FFFFFF', borderRadius: 18, borderWidth: 1, borderColor: '#E7EEF1', padding: 15 },
+  totalLabel: { color: '#1F2937', fontSize: 13, fontWeight: '800' },
+  totalHint: { color: '#94A3B8', fontSize: 9, marginTop: 3 },
+  totalAmount: { color: '#4B5563', fontSize: 20, fontWeight: '800' },
+  paymentCard: { backgroundColor: '#FFFFFF', borderRadius: 18, borderWidth: 1, borderColor: '#E5E7EB', padding: 15 },
+  qrCard: { alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', borderRadius: 18, borderWidth: 1, borderColor: '#E5E7EB', padding: 18 },
+  qrTitle: { color: '#111827', fontSize: 18, fontWeight: '800' },
+  qrSubtitle: { color: '#64748B', fontSize: 12, textAlign: 'center' },
+  qrWrap: { marginVertical: 4, padding: 12, borderRadius: 12, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB' },
+  qrOpenButton: { minHeight: 44, width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 10, backgroundColor: '#374151' },
+  qrOpenButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
   paymentHeading: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  paymentHeadingIcon: { width: 37, height: 37, borderRadius: 12, backgroundColor: '#EAF7F7', alignItems: 'center', justifyContent: 'center' },
-  paymentTitle: { color: '#102A36', fontSize: 13, fontWeight: '800' },
-  paymentSubtitle: { color: '#81919A', fontSize: 10, marginTop: 3 },
+  paymentHeadingIcon: { width: 37, height: 37, borderRadius: 12, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
+  paymentTitle: { color: '#1F2937', fontSize: 13, fontWeight: '800' },
+  paymentSubtitle: { color: '#94A3B8', fontSize: 10, marginTop: 3 },
   paymentDivider: { height: 1, backgroundColor: '#EDF2F4', marginVertical: 13 },
   paymentStateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   paymentStateLabel: { color: '#64748B', fontSize: 11 },
   paymentStateValue: { color: '#B54708', fontSize: 11, fontWeight: '800' },
   testPendingText: { color: '#B54708' },
-  voucherCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 15, borderWidth: 1, borderColor: '#B9DCDD', borderRadius: 14, backgroundColor: '#F2FAFA' },
-  voucherIcon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: '#D9F0F0' },
+  voucherCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 15, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 14, backgroundColor: '#F3F4F6' },
+  voucherIcon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: '#F3F4F6' },
   voucherCopy: { flex: 1 },
-  voucherLabel: { color: '#087E8B', fontSize: 9, fontWeight: '900', letterSpacing: 0.6 },
-  voucherCode: { marginTop: 4, color: '#17354B', fontSize: 19, fontWeight: '900', letterSpacing: 0.5 },
-  voucherHint: { marginTop: 3, color: '#526974', fontSize: 10 },
-  primaryButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, backgroundColor: '#087E8B', borderRadius: 15, paddingVertical: 16, shadowColor: '#087E8B', shadowOpacity: 0.16, shadowRadius: 9, shadowOffset: { width: 0, height: 5 }, elevation: 3 },
+  voucherLabel: { color: '#4B5563', fontSize: 9, fontWeight: '900', letterSpacing: 0.6 },
+  voucherCode: { marginTop: 4, color: '#1F2937', fontSize: 19, fontWeight: '900', letterSpacing: 0.5 },
+  voucherHint: { marginTop: 3, color: '#64748B', fontSize: 10 },
+  primaryButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, backgroundColor: '#4B5563', borderRadius: 15, paddingVertical: 16, shadowColor: '#4B5563', shadowOpacity: 0.16, shadowRadius: 9, shadowOffset: { width: 0, height: 5 }, elevation: 3 },
   buttonBusy: { opacity: 0.75 },
   primaryButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
   secondaryButton: { alignItems: 'center', justifyContent: 'center', paddingVertical: 13, borderRadius: 13, borderWidth: 1, borderColor: '#C9DADD', backgroundColor: '#FFFFFF' },
-  secondaryButtonText: { color: '#087E8B', fontSize: 12, fontWeight: '800' },
-  notice: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', padding: 12, borderRadius: 13, backgroundColor: '#EAF7F7' },
+  secondaryButtonText: { color: '#4B5563', fontSize: 12, fontWeight: '800' },
+  notice: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', padding: 12, borderRadius: 13, backgroundColor: '#F3F4F6' },
   noticeText: { flex: 1, color: '#49616B', fontSize: 11, lineHeight: 17 },
   errorNotice: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', padding: 12, borderRadius: 13, backgroundColor: '#FEF3F2' },
   errorNoticeText: { flex: 1, color: '#B42318', fontSize: 11, lineHeight: 17 },
   verifying: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   verifyingText: { color: '#64748B', fontSize: 11 },
-  footerNote: { color: '#81919A', fontSize: 10, textAlign: 'center', paddingBottom: 4 },
+  footerNote: { color: '#94A3B8', fontSize: 10, textAlign: 'center', paddingBottom: 4 },
 });

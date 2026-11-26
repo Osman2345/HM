@@ -16,15 +16,31 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { data, error } = await createAdminClient()
-      .from('hotels')
-      .select('id, name, description, location, city, country, rating, review_count, featured, cover_image, images, amenities, policies, rooms')
-      .eq('approval_status', 'approved')
-      .order('created_at', { ascending: false })
-      .limit(limit);
+    const { data, error } = await createAdminClient().rpc('search_hotels', {
+      p_limit: limit,
+      p_offset: 0,
+      p_sort: 'featured',
+    });
     if (error) throw error;
 
-    return res.status(200).json({ hotels: data ?? [] });
+    const hotels = (data ?? []).map((hotel) => ({
+      id: hotel.id,
+      name: hotel.name,
+      description: hotel.description,
+      location: hotel.location,
+      city: hotel.city,
+      country: hotel.country,
+      rating: hotel.rating,
+      review_count: hotel.review_count,
+      featured: hotel.featured,
+      cover_image: hotel.cover_image,
+      images: hotel.images,
+      amenities: hotel.amenities,
+      policies: hotel.policies,
+      rooms: hotel.rooms,
+    }));
+
+    return res.status(200).json({ hotels });
   } catch (error) {
     console.error('Unable to fetch approved hotels:', error);
     return res.status(503).json({ error: 'Hotel service is temporarily unavailable' });

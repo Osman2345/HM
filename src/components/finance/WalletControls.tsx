@@ -103,13 +103,13 @@ export default function WalletControls() {
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
-        <View style={styles.walletIcon}><Ionicons name="wallet-outline" size={20} color="#087E8B" /></View>
+        <View style={styles.walletIcon}><Ionicons name="wallet-outline" size={20} color="#4B5563" /></View>
         <View style={styles.walletHeading}>
           <Text style={styles.eyebrow}>AVAILABLE BALANCE</Text>
-          {loading ? <ActivityIndicator size="small" color="#087E8B" /> : <Text style={styles.balance}>{formatMoney(wallet?.available_balance ?? 0)}</Text>}
+          {loading ? <ActivityIndicator size="small" color="#4B5563" /> : <Text style={styles.balance}>{formatMoney(wallet?.available_balance ?? 0)}</Text>}
         </View>
         <TouchableOpacity accessibilityRole="button" style={styles.refreshButton} onPress={() => void loadWallet()} disabled={loading}>
-          <Ionicons name="refresh-outline" size={17} color="#087E8B" />
+          <Ionicons name="refresh-outline" size={17} color="#4B5563" />
         </TouchableOpacity>
       </View>
 
@@ -118,7 +118,7 @@ export default function WalletControls() {
         <Text style={styles.summaryText}>Reserved {formatMoney(wallet?.reserved_withdrawals ?? 0)}</Text>
       </View>
       <View style={styles.methodRow}>
-        <Ionicons name="phone-portrait-outline" size={15} color="#718397" />
+        <Ionicons name="phone-portrait-outline" size={15} color="#64748B" />
         <Text style={styles.methodText} numberOfLines={1}>
           {wallet?.provider && wallet.phone_number
             ? `${providerName(wallet.provider)} · ${wallet.phone_number}`
@@ -128,7 +128,7 @@ export default function WalletControls() {
 
       <View style={styles.actions}>
         <TouchableOpacity accessibilityRole="button" style={styles.methodButton} onPress={openMethodDialog}>
-          <Ionicons name="add-circle-outline" size={16} color="#087E8B" />
+          <Ionicons name="add-circle-outline" size={16} color="#4B5563" />
           <Text style={styles.methodButtonText}>{wallet?.provider ? 'Update withdrawal method' : 'Add withdrawal method'}</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -152,7 +152,7 @@ export default function WalletControls() {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>{dialog === 'method' ? 'Withdrawal method' : 'Request withdrawal'}</Text>
                 <TouchableOpacity accessibilityRole="button" onPress={() => !busy && setDialog(null)} disabled={busy}>
-                  <Ionicons name="close" size={22} color="#526974" />
+                  <Ionicons name="close" size={22} color="#64748B" />
                 </TouchableOpacity>
               </View>
               {dialog === 'method' ? (
@@ -217,38 +217,38 @@ export default function WalletControls() {
 }
 
 const styles = StyleSheet.create({
-  card: { padding: 16, gap: 12, borderWidth: 1, borderColor: '#DDE6E9', borderRadius: 9, backgroundColor: '#FFFFFF' },
+  card: { padding: 16, gap: 12, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 9, backgroundColor: '#FFFFFF' },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 11 },
-  walletIcon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: '#E8F5F3' },
+  walletIcon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: '#F3F4F6' },
   walletHeading: { flex: 1, gap: 3 },
-  eyebrow: { color: '#718397', fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
-  balance: { color: '#17354B', fontSize: 22, fontWeight: '900' },
-  refreshButton: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#DDE6E9', borderRadius: 7 },
+  eyebrow: { color: '#64748B', fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
+  balance: { color: '#1F2937', fontSize: 22, fontWeight: '900' },
+  refreshButton: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 7 },
   summaryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
-  summaryText: { color: '#526974', fontSize: 11, fontWeight: '600' },
+  summaryText: { color: '#64748B', fontSize: 11, fontWeight: '600' },
   methodRow: { minHeight: 28, flexDirection: 'row', alignItems: 'center', gap: 7 },
-  methodText: { flex: 1, color: '#526974', fontSize: 11 },
+  methodText: { flex: 1, color: '#64748B', fontSize: 11 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  methodButton: { minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, borderWidth: 1, borderColor: '#B9DCDD', borderRadius: 6 },
-  methodButtonText: { color: '#087E8B', fontSize: 11, fontWeight: '800' },
-  withdrawButton: { minHeight: 36, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 12, borderRadius: 6, backgroundColor: '#087E8B' },
+  methodButton: { minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 6 },
+  methodButtonText: { color: '#4B5563', fontSize: 11, fontWeight: '800' },
+  withdrawButton: { minHeight: 36, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 12, borderRadius: 6, backgroundColor: '#4B5563' },
   withdrawButtonText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
   buttonDisabled: { opacity: 0.55 },
-  helper: { color: '#82909B', fontSize: 10, lineHeight: 15 },
+  helper: { color: '#9CA3AF', fontSize: 10, lineHeight: 15 },
   error: { color: '#B42318', fontSize: 11 },
   notice: { color: '#027A48', fontSize: 11, fontWeight: '700' },
   modalBackdrop: { flex: 1, justifyContent: 'center', padding: 18, backgroundColor: 'rgba(17, 35, 44, 0.48)' },
   modalScroll: { flexGrow: 1, justifyContent: 'center' },
   modalCard: { width: '100%', maxWidth: 480, alignSelf: 'center', gap: 11, padding: 18, borderRadius: 10, backgroundColor: '#FFFFFF' },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-  modalTitle: { color: '#17354B', fontSize: 17, fontWeight: '800' },
+  modalTitle: { color: '#1F2937', fontSize: 17, fontWeight: '800' },
   label: { color: '#344054', fontSize: 11, fontWeight: '700' },
   providerOptions: { flexDirection: 'row', gap: 8 },
-  providerOption: { minHeight: 40, flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#DDE6E9', borderRadius: 6 },
-  providerSelected: { borderColor: '#087E8B', backgroundColor: '#F2FAFA' },
-  providerText: { color: '#526974', fontSize: 11, fontWeight: '700' },
-  providerTextSelected: { color: '#087E8B' },
-  input: { minHeight: 42, paddingHorizontal: 10, borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 6, color: '#17354B', fontSize: 13 },
-  modalHint: { color: '#718397', fontSize: 10, lineHeight: 15 },
-  modalPrimary: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 6, borderRadius: 6, backgroundColor: '#087E8B' },
+  providerOption: { minHeight: 40, flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 6 },
+  providerSelected: { borderColor: '#4B5563', backgroundColor: '#F3F4F6' },
+  providerText: { color: '#64748B', fontSize: 11, fontWeight: '700' },
+  providerTextSelected: { color: '#4B5563' },
+  input: { minHeight: 42, paddingHorizontal: 10, borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 6, color: '#1F2937', fontSize: 13 },
+  modalHint: { color: '#64748B', fontSize: 10, lineHeight: 15 },
+  modalPrimary: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 6, borderRadius: 6, backgroundColor: '#4B5563' },
 });

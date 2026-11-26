@@ -74,7 +74,7 @@ export default function PaymentCallbackScreen() {
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color="#2563EB" />
+      <ActivityIndicator size="large" color="#4B5563" />
       <Text style={styles.title}>Payment callback</Text>
       <Text style={styles.subtitle}>
         {params.reference ? `Reference: ${params.reference}` : 'Processing your payment update...'}
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
   },
   caption: {
     marginTop: 6,
-    color: '#2563EB',
+    color: '#4B5563',
     fontWeight: '700',
     textTransform: 'capitalize',
   },

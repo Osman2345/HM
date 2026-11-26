@@ -482,12 +482,11 @@ app.get('/api/hotels', async (req, res) => {
   }
 
   try {
-    const { data, error } = await getSupabaseAdminClient()
-      .from('hotels')
-      .select('id, name, description, location, city, country, rating, review_count, featured, cover_image, images, amenities, policies, rooms')
-      .eq('approval_status', 'approved')
-      .order('created_at', { ascending: false })
-      .limit(requestedLimit);
+    const { data, error } = await getSupabaseAdminClient().rpc('search_hotels', {
+      p_limit: requestedLimit,
+      p_offset: 0,
+      p_sort: 'featured',
+    });
     if (error) throw error;
 
     return res.json({ hotels: data ?? [] });

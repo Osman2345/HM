@@ -226,11 +226,11 @@ const loadHotels = async () => {
     process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY,
     { auth: { autoRefreshToken: false, persistSession: false } },
   );
-  const { data, error } = await supabase
-    .from('hotels')
-    .select('id, name, description, location, city, country, rating, review_count, featured, price_per_night, cover_image, images, amenities, policies, rooms')
-    .eq('approval_status', 'approved')
-    .limit(100);
+  const { data, error } = await supabase.rpc('search_hotels', {
+    p_limit: 100,
+    p_offset: 0,
+    p_sort: 'featured',
+  });
   if (error) throw error;
 
   return { hotels: (data ?? []).map(normalizeHotel) };

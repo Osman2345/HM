@@ -1,7 +1,7 @@
-﻿import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import HotelMap from '@/components/HotelMap';
 import { supabase } from '@/lib/supabase';
@@ -48,7 +48,7 @@ export default function MapScreen() {
   const [userCity, setUserCity] = useState('Freetown');
   const [region, setRegion] = useState<MapRegion>(defaultRegion);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     let active = true;
 
     const loadSelectedHotel = async () => {
@@ -219,7 +219,7 @@ export default function MapScreen() {
     return () => {
       active = false;
     };
-  }, [hotelId]);
+  }, [hotelId]));
 
   useEffect(() => {
     if (selectedHotel && selectedHotel.latitude != null && selectedHotel.longitude != null) {
@@ -233,7 +233,7 @@ export default function MapScreen() {
   }, [selectedHotel]);
 
   const summaryText = useMemo(() => {
-    if (loading) return hotelId ? 'Loading hotel location…' : 'Finding hotels near you…';
+    if (loading) return hotelId ? 'Loading hotel location' : 'Finding hotels near you';
     if (error) return 'Map unavailable';
     return hotelId ? `Hotel location in ${userCity}` : `Hotels around ${userCity}`;
   }, [error, hotelId, loading, userCity]);
@@ -262,7 +262,7 @@ export default function MapScreen() {
           style={styles.backButton}
           onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
         >
-          <Ionicons name="chevron-back" size={22} color="#17354B" />
+          <Ionicons name="chevron-back" size={22} color="#1F2937" />
         </TouchableOpacity>
         <View style={styles.headerTextWrap}>
           <Text style={styles.heading}>Map</Text>
@@ -270,7 +270,7 @@ export default function MapScreen() {
         </View>
       </View>
 
-      {loading ? <Text style={styles.loading}>Loading nearby hotels…</Text> : null}
+      {loading ? <Text style={styles.loading}>Loading nearby hotels</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <View style={styles.mapCard}>
@@ -359,14 +359,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#EAF5F6',
   },
   heading: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 28,
     fontWeight: '800',
     letterSpacing: -0.5,
   },
   subtitle: {
     marginTop: 4,
-    color: '#5E7382',
+    color: '#64748B',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -395,17 +395,17 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EBF7F9',
+    backgroundColor: '#F3F4F6',
     paddingHorizontal: 20,
   },
   webMapTitle: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 20,
     fontWeight: '800',
   },
   webMapText: {
     marginTop: 8,
-    color: '#5E7382',
+    color: '#64748B',
     textAlign: 'center',
     fontSize: 13,
     fontWeight: '600',
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   listTitle: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 18,
     fontWeight: '800',
   },
@@ -426,25 +426,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E7EEF1',
+    borderColor: '#E5E7EB',
     paddingHorizontal: 14,
     paddingVertical: 14,
   },
   hotelCardSelected: {
-    borderColor: '#087E8B',
+    borderColor: '#4B5563',
     backgroundColor: '#F4FBFC',
   },
   hotelTextWrap: {
     flex: 1,
   },
   hotelName: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 16,
     fontWeight: '800',
   },
   hotelMeta: {
     marginTop: 3,
-    color: '#5E7382',
+    color: '#64748B',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EAF5F6',
   },
   inlineActionText: {
-    color: '#0A5F6B',
+    color: '#4B5563',
     fontSize: 12,
     fontWeight: '800',
   },
@@ -467,13 +467,13 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   selectionTitle: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 20,
     fontWeight: '800',
   },
   selectionMeta: {
     marginTop: 4,
-    color: '#5E7382',
+    color: '#64748B',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   primaryActionText: {
     color: '#FFFFFF',
@@ -509,10 +509,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#EAF5F6',
     borderWidth: 1,
-    borderColor: '#CFE8EC',
+    borderColor: '#E5E7EB',
   },
   secondaryActionText: {
-    color: '#0A5F6B',
+    color: '#4B5563',
     fontSize: 13,
     fontWeight: '800',
   },

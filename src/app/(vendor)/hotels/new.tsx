@@ -487,19 +487,19 @@ export default function VendorHotelEditorScreen() {
               Add the details guests need to discover your property and book with confidence.
             </Text>
           </View>
-          <View style={styles.heroIcon}><Ionicons name="business-outline" size={25} color="#D8F5F0" /></View>
+          <View style={styles.heroIcon}><Ionicons name="business-outline" size={25} color="#F3F4F6" /></View>
         </View>
 
         {!editing ? (
           <View style={styles.publishNote}>
-            <View style={styles.publishIcon}><Ionicons name="flash-outline" size={17} color="#087E8B" /></View>
+            <View style={styles.publishIcon}><Ionicons name="flash-outline" size={17} color="#4B5563" /></View>
             <Text style={styles.publishText}>
               Your listing will be published as soon as you save it because your vendor account is approved.
             </Text>
           </View>
         ) : status ? (
           <View style={styles.publishNote}>
-            <View style={styles.publishIcon}><Ionicons name="information-circle-outline" size={17} color="#087E8B" /></View>
+            <View style={styles.publishIcon}><Ionicons name="information-circle-outline" size={17} color="#4B5563" /></View>
             <Text style={styles.publishText}>
               Listing status: <Text style={styles.publishStrong}>{status}</Text>. Editing details will not change its status.
             </Text>
@@ -565,12 +565,12 @@ export default function VendorHotelEditorScreen() {
                 onPress={() => void choosePhotos()}
                 disabled={busy}
               >
-                <View style={styles.photoPickerIcon}><Ionicons name="cloud-upload-outline" size={21} color="#087E8B" /></View>
+                <View style={styles.photoPickerIcon}><Ionicons name="cloud-upload-outline" size={21} color="#4B5563" /></View>
                 <View style={styles.photoPickerCopy}>
                   <Text style={styles.photoPickerTitle}>Choose property photos</Text>
                       <Text style={styles.photoPickerHint}>Up to {MAX_LISTING_PHOTOS} photos · JPEG, PNG, WebP, or HEIC · 10 MB max each</Text>
                 </View>
-                <Ionicons name="add-circle-outline" size={22} color="#087E8B" />
+                <Ionicons name="add-circle-outline" size={22} color="#4B5563" />
               </TouchableOpacity>
               {photos.length ? (
                 <View style={styles.photoGrid}>
@@ -661,12 +661,12 @@ export default function VendorHotelEditorScreen() {
                     onPress={() => void chooseRoomPhotos(room.formId)}
                     disabled={busy}
                   >
-                    <View style={styles.photoPickerIcon}><Ionicons name="cloud-upload-outline" size={21} color="#087E8B" /></View>
+                    <View style={styles.photoPickerIcon}><Ionicons name="cloud-upload-outline" size={21} color="#4B5563" /></View>
                     <View style={styles.photoPickerCopy}>
                       <Text style={styles.photoPickerTitle}>Choose room photos</Text>
                       <Text style={styles.photoPickerHint}>Up to {MAX_LISTING_PHOTOS} photos · JPEG, PNG, WebP, or HEIC</Text>
                     </View>
-                    <Ionicons name="add-circle-outline" size={22} color="#087E8B" />
+                    <Ionicons name="add-circle-outline" size={22} color="#4B5563" />
                   </TouchableOpacity>
                   {room.images.length || room.newImages.length ? (
                     <View style={styles.photoGrid}>
@@ -697,7 +697,7 @@ export default function VendorHotelEditorScreen() {
                 style={styles.addRoomButton}
                 onPress={() => setRooms((current) => [...current, emptyRoom()])}
               >
-                <Ionicons name="add-circle-outline" size={18} color="#087E8B" />
+                <Ionicons name="add-circle-outline" size={18} color="#4B5563" />
                 <Text style={styles.addRoomText}>Add another room type</Text>
               </TouchableOpacity>
             </FormSection>
@@ -801,7 +801,7 @@ function FormSection({ icon, title, subtitle, children }: FormSectionProps) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <View style={styles.sectionIcon}><Ionicons name={icon} size={17} color="#087E8B" /></View>
+        <View style={styles.sectionIcon}><Ionicons name={icon} size={17} color="#4B5563" /></View>
         <View style={styles.sectionHeadingCopy}>
           <Text style={styles.sectionTitle}>{title}</Text>
           <Text style={styles.sectionSubtitle}>{subtitle}</Text>
@@ -838,13 +838,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 20,
     borderRadius: 16,
-    backgroundColor: '#173B4A',
+    backgroundColor: '#374151',
   },
   heroCopy: {
     flex: 1,
   },
   eyebrow: {
-    color: '#A5DCD7',
+    color: '#D1D5DB',
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 1.4,
@@ -856,7 +856,7 @@ const styles = StyleSheet.create({
     marginTop: 7,
   },
   heroSubtitle: {
-    color: '#C2D4D9',
+    color: '#D1D5DB',
     fontSize: 11,
     lineHeight: 17,
     marginTop: 6,
@@ -877,9 +877,9 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#CFE5E1',
+    borderColor: '#D1D5DB',
     borderRadius: 11,
-    backgroundColor: '#F0FAF8',
+    backgroundColor: '#F3F4F6',
   },
   publishIcon: {
     width: 31,
@@ -955,18 +955,18 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EAF5F4',
+    backgroundColor: '#F3F4F6',
   },
   sectionHeadingCopy: {
     flex: 1,
   },
   sectionTitle: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 13,
     fontWeight: '800',
   },
   sectionSubtitle: {
-    color: '#8B9AA1',
+    color: '#94A3B8',
     fontSize: 9,
     marginTop: 3,
   },
@@ -974,7 +974,7 @@ const styles = StyleSheet.create({
     marginBottom: 13,
   },
   fieldLabel: {
-    color: '#405A66',
+    color: '#374151',
     fontSize: 10,
     fontWeight: '800',
     marginBottom: 6,
@@ -986,7 +986,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#DCE5E7',
     borderRadius: 10,
-    color: '#17354B',
+    color: '#1F2937',
     backgroundColor: '#FBFCFC',
     fontSize: 12,
   },
@@ -1001,7 +1001,7 @@ const styles = StyleSheet.create({
     minHeight: 70,
   },
   fieldHint: {
-    color: '#8B9AA1',
+    color: '#94A3B8',
     fontSize: 9,
     lineHeight: 14,
     marginTop: 5,
@@ -1022,7 +1022,7 @@ const styles = StyleSheet.create({
     padding: 11,
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: '#B8D1D4',
+    borderColor: '#D1D5DB',
     borderRadius: 11,
     backgroundColor: '#FBFEFD',
   },
@@ -1032,18 +1032,18 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EAF5F4',
+    backgroundColor: '#F3F4F6',
   },
   photoPickerCopy: {
     flex: 1,
   },
   photoPickerTitle: {
-    color: '#294655',
+    color: '#374151',
     fontSize: 10,
     fontWeight: '800',
   },
   photoPickerHint: {
-    color: '#8B9AA1',
+    color: '#94A3B8',
     fontSize: 9,
     marginTop: 4,
   },
@@ -1059,7 +1059,7 @@ const styles = StyleSheet.create({
     height: 74,
     borderRadius: 9,
     overflow: 'hidden',
-    backgroundColor: '#EDF3F4',
+    backgroundColor: '#F3F4F6',
   },
   photoThumb: {
     width: '100%',
@@ -1072,7 +1072,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     paddingVertical: 3,
     borderRadius: 5,
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   coverTagText: {
     color: '#FFFFFF',
@@ -1116,7 +1116,7 @@ const styles = StyleSheet.create({
     marginBottom: 13,
   },
   roomTitle: {
-    color: '#294655',
+    color: '#374151',
     fontSize: 11,
     fontWeight: '800',
   },
@@ -1127,12 +1127,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 7,
     borderWidth: 1,
-    borderColor: '#CFE5E1',
+    borderColor: '#D1D5DB',
     borderRadius: 10,
-    backgroundColor: '#F0FAF8',
+    backgroundColor: '#F3F4F6',
   },
   addRoomText: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 10,
     fontWeight: '800',
   },
@@ -1152,7 +1152,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   cancelText: {
-    color: '#526974',
+    color: '#64748B',
     fontSize: 11,
     fontWeight: '800',
   },
@@ -1164,7 +1164,7 @@ const styles = StyleSheet.create({
     gap: 7,
     paddingHorizontal: 16,
     borderRadius: 10,
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   disabledButton: {
     opacity: 0.55,
@@ -1175,7 +1175,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   state: {
-    color: '#718397',
+    color: '#64748B',
     textAlign: 'center',
   },
 });

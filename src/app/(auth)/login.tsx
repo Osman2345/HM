@@ -14,7 +14,7 @@ export default function LoginScreen() {
   }>();
   const bookingHotelId = typeof params.bookingHotelId === 'string' ? params.bookingHotelId : undefined;
   const vendorApplicationIncomplete = params.vendorApplicationIncomplete === 'true';
-  const vendorAudience = params.audience === 'vendor';
+  const vendorAudience = Platform.OS === 'web' && params.audience === 'vendor';
   const signIn = useAuthStore((state) => state.signIn);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -56,7 +56,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.screen}>
+    <View style={StyleSheet.flatten([styles.screen, Platform.OS !== 'web' && styles.mobileScreen])}>
       {Platform.OS === 'web' ? <MobileAuthHeader /> : <MobileAuthHero />}
       <ScrollView
         style={Platform.OS !== 'web' ? styles.mobileScroll : undefined}
@@ -71,7 +71,9 @@ export default function LoginScreen() {
           {vendorAudience ? 'Partner sign in' : Platform.OS === 'web' ? 'Welcome back' : 'Sign in'}
         </Text>
         <Text style={styles.subtitle}>
-          {vendorAudience ? 'Sign in to manage your property and bookings.' : 'Sign in to continue'}
+          {vendorAudience
+            ? 'Sign in to manage your property and bookings.'
+            : Platform.OS === 'web' ? 'Sign in to continue' : 'Welcome back. Your next stay is waiting.'}
         </Text>
         {vendorApplicationIncomplete ? (
           <Text style={styles.notice}>
@@ -87,7 +89,7 @@ export default function LoginScreen() {
           keyboardType="email-address"
           autoComplete="email"
           placeholder="name@example.com"
-          placeholderTextColor="#94A3A8"
+          placeholderTextColor="#94A3B8"
           style={StyleSheet.flatten([styles.input, Platform.OS !== 'web' && styles.mobileInput])}
         />
         <View style={styles.passwordLabelRow}>
@@ -107,7 +109,7 @@ export default function LoginScreen() {
           secureTextEntry
           autoComplete="current-password"
           placeholder="Enter your password"
-          placeholderTextColor="#94A3A8"
+          placeholderTextColor="#94A3B8"
           style={StyleSheet.flatten([styles.input, Platform.OS !== 'web' && styles.mobileInput])}
         />
         {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -131,13 +133,15 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </Link>
 
-        <Link href={vendorAudience ? '/register-vendor' : '/login?audience=vendor'} asChild>
-          <TouchableOpacity style={styles.vendorLink}>
-            <Text style={styles.vendorLinkText}>
-              {vendorAudience ? 'New partner? Create a vendor account' : 'Sign in as a vendor'}
-            </Text>
-          </TouchableOpacity>
-        </Link>
+        {Platform.OS === 'web' ? (
+          <Link href={vendorAudience ? '/register-vendor' : '/login?audience=vendor'} asChild>
+            <TouchableOpacity style={styles.vendorLink}>
+              <Text style={styles.vendorLinkText}>
+                {vendorAudience ? 'New partner? Create a vendor account' : 'Sign in as a vendor'}
+              </Text>
+            </TouchableOpacity>
+          </Link>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -147,6 +151,9 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  mobileScreen: {
+    backgroundColor: '#F8FAFC',
   },
   mobileScroll: {
     flex: 1,
@@ -180,7 +187,7 @@ const styles = StyleSheet.create({
     color: '#0F172A',
   },
   mobileTitle: {
-    color: '#17354B',
+    color: '#123A50',
     fontSize: 28,
     fontWeight: '800',
     marginBottom: 4,
@@ -210,7 +217,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 0,
     borderRightWidth: 0,
     backgroundColor: 'transparent',
-    color: '#17354B',
+    color: '#123A50',
     fontSize: 14,
   },
   label: {
@@ -230,7 +237,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   primaryButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#4B5563',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
@@ -238,7 +245,7 @@ const styles = StyleSheet.create({
   },
   mobilePrimaryButton: {
     minHeight: 48,
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: '#087E8B',
     marginTop: 18,
   },
@@ -265,7 +272,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   mobileSecondaryButtonText: {
-    color: '#718397',
+    color: '#526974',
     fontSize: 12,
     fontWeight: '500',
   },
@@ -285,8 +292,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   notice: {
-    color: '#285464',
-    backgroundColor: '#EAF4F4',
+    color: '#374151',
+    backgroundColor: '#F3F4F6',
     borderRadius: 10,
     padding: 12,
     marginBottom: 14,

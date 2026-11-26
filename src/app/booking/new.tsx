@@ -324,7 +324,7 @@ export default function NewBookingScreen() {
       </TouchableOpacity>
 
       <View style={styles.hero}>
-        <View style={styles.heroIcon}><Ionicons name="bed-outline" size={22} color="#087E8B" /></View>
+        <View style={styles.heroIcon}><Ionicons name="bed-outline" size={22} color="#4B5563" /></View>
         <Text style={styles.eyebrow}>YOUR STAY, YOUR WAY</Text>
         <Text style={styles.heading}>Confirm your stay</Text>
         <Text style={styles.subtitle}>{hotelName || (loadingHotel ? 'Loading hotel…' : 'Choose your dates and room')}</Text>
@@ -363,7 +363,7 @@ export default function NewBookingScreen() {
           </View>
         </View>
         <View style={styles.nightBadge}>
-          <Ionicons name="moon-outline" size={14} color="#087E8B" />
+          <Ionicons name="moon-outline" size={14} color="#4B5563" />
           <Text style={styles.nightText}>{nights} {nights === 1 ? 'night' : 'nights'}</Text>
         </View>
         {hotelCheckInTime || hotelCheckOutTime ? (
@@ -379,9 +379,9 @@ export default function NewBookingScreen() {
         <View><Text style={styles.stepTitle}>Choose your room</Text><Text style={styles.stepHint}>Live availability for these dates</Text></View>
       </View>
       {!datesValid ? (
-        <View style={styles.infoBanner}><Ionicons name="calendar-outline" size={18} color="#087E8B" /><Text style={styles.bannerText}>Enter valid dates to see which rooms are available.</Text></View>
+        <View style={styles.infoBanner}><Ionicons name="calendar-outline" size={18} color="#4B5563" /><Text style={styles.bannerText}>Enter valid dates to see which rooms are available.</Text></View>
       ) : loadingAvailability ? (
-        <View style={styles.loadingCard}><ActivityIndicator color="#087E8B" /><Text style={styles.bannerText}>Checking dates with the hotel…</Text></View>
+        <View style={styles.loadingCard}><ActivityIndicator color="#4B5563" /><Text style={styles.bannerText}>Checking dates with the hotel…</Text></View>
       ) : availabilityError ? (
         <View style={styles.errorBanner}><Ionicons name="warning-outline" size={18} color="#B42318" /><Text style={styles.errorText}>Room availability could not be checked. {availabilityError}</Text></View>
       ) : null}
@@ -406,13 +406,13 @@ export default function NewBookingScreen() {
           >
             <View style={styles.roomTop}>
               <View style={[styles.roomIcon, selected && styles.roomIconSelected]}>
-                <Ionicons name="bed-outline" size={20} color={selected ? '#FFFFFF' : '#087E8B'} />
+                <Ionicons name="bed-outline" size={20} color={selected ? '#FFFFFF' : '#4B5563'} />
               </View>
               <View style={styles.roomTitleGroup}>
                 <Text style={styles.roomName}>{room.type}</Text>
                 <Text style={styles.roomCapacity}><Ionicons name="people-outline" size={13} color="#64748B" />  Up to {room.capacity_guests} guests per room</Text>
               </View>
-              {selected ? <Ionicons name="checkmark-circle" size={22} color="#087E8B" /> : null}
+              {selected ? <Ionicons name="checkmark-circle" size={22} color="#4B5563" /> : null}
             </View>
             <View style={styles.roomBottom}>
               <Text style={styles.roomPrice}>Le {Number(room.price_per_night).toLocaleString()}<Text style={styles.perNight}> / night</Text></Text>
@@ -469,12 +469,12 @@ export default function NewBookingScreen() {
           onPress={() => setPaymentMethod('monime')}
           disabled={busy}
         >
-          <Ionicons name="card-outline" size={20} color={paymentMethod === 'monime' ? '#087E8B' : '#718397'} />
+          <Ionicons name="card-outline" size={20} color={paymentMethod === 'monime' ? '#4B5563' : '#64748B'} />
           <View style={styles.paymentOptionCopy}>
             <Text style={styles.paymentOptionTitle}>Pay securely now</Text>
             <Text style={styles.paymentOptionHint}>Complete payment through Monime</Text>
           </View>
-          <Ionicons name={paymentMethod === 'monime' ? 'radio-button-on' : 'radio-button-off'} size={19} color="#087E8B" />
+          <Ionicons name={paymentMethod === 'monime' ? 'radio-button-on' : 'radio-button-off'} size={19} color="#4B5563" />
         </TouchableOpacity>
         <TouchableOpacity
           accessibilityRole="radio"
@@ -483,12 +483,12 @@ export default function NewBookingScreen() {
           onPress={() => setPaymentMethod('pay_at_hotel')}
           disabled={busy}
         >
-          <Ionicons name="business-outline" size={20} color={paymentMethod === 'pay_at_hotel' ? '#087E8B' : '#718397'} />
+          <Ionicons name="business-outline" size={20} color={paymentMethod === 'pay_at_hotel' ? '#4B5563' : '#64748B'} />
           <View style={styles.paymentOptionCopy}>
             <Text style={styles.paymentOptionTitle}>Pay at the hotel</Text>
             <Text style={styles.paymentOptionHint}>The vendor records checkout and payment</Text>
           </View>
-          <Ionicons name={paymentMethod === 'pay_at_hotel' ? 'radio-button-on' : 'radio-button-off'} size={19} color="#087E8B" />
+          <Ionicons name={paymentMethod === 'pay_at_hotel' ? 'radio-button-on' : 'radio-button-off'} size={19} color="#4B5563" />
         </TouchableOpacity>
       </View>
 
@@ -531,47 +531,47 @@ const styles = StyleSheet.create({
   backButton: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 8, paddingRight: 10 },
   backText: { color: '#334155', fontSize: 14, fontWeight: '600' },
   hero: { alignItems: 'center', paddingTop: 4, paddingBottom: 8 },
-  heroIcon: { width: 46, height: 46, borderRadius: 16, backgroundColor: '#D9F0F0', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  eyebrow: { color: '#087E8B', fontSize: 10, fontWeight: '800', letterSpacing: 1.6 },
-  heading: { marginTop: 4, color: '#102A36', fontSize: 27, fontWeight: '800' },
+  heroIcon: { width: 46, height: 46, borderRadius: 16, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  eyebrow: { color: '#4B5563', fontSize: 10, fontWeight: '800', letterSpacing: 1.6 },
+  heading: { marginTop: 4, color: '#1F2937', fontSize: 27, fontWeight: '800' },
   subtitle: { marginTop: 4, color: '#64748B', fontSize: 14 },
   stepRow: { flexDirection: 'row', alignItems: 'center', gap: 11, marginTop: 3 },
-  stepNumber: { width: 29, height: 29, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: '#D9F0F0' },
-  stepNumberText: { color: '#087E8B', fontWeight: '800', fontSize: 13 },
-  stepTitle: { color: '#102A36', fontWeight: '700', fontSize: 15 },
+  stepNumber: { width: 29, height: 29, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F3F4F6' },
+  stepNumberText: { color: '#4B5563', fontWeight: '800', fontSize: 13 },
+  stepTitle: { color: '#1F2937', fontWeight: '700', fontSize: 15 },
   stepHint: { color: '#7A8B94', fontSize: 11, marginTop: 1 },
   paymentOptions: { gap: 8 },
   paymentOption: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 11, paddingHorizontal: 13, paddingVertical: 10, borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, backgroundColor: '#FFFFFF' },
-  paymentOptionSelected: { borderColor: '#087E8B', backgroundColor: '#F2FAFA' },
+  paymentOptionSelected: { borderColor: '#4B5563', backgroundColor: '#F3F4F6' },
   paymentOptionCopy: { flex: 1 },
-  paymentOptionTitle: { color: '#17354B', fontSize: 13, fontWeight: '800' },
-  paymentOptionHint: { marginTop: 3, color: '#718397', fontSize: 11 },
-  card: { padding: 16, backgroundColor: '#FFFFFF', borderRadius: 18, borderWidth: 1, borderColor: '#E7EEF1' },
+  paymentOptionTitle: { color: '#1F2937', fontSize: 13, fontWeight: '800' },
+  paymentOptionHint: { marginTop: 3, color: '#64748B', fontSize: 11 },
+  card: { padding: 16, backgroundColor: '#FFFFFF', borderRadius: 18, borderWidth: 1, borderColor: '#E5E7EB' },
   dateRow: { flexDirection: 'row', alignItems: 'center' },
   dateField: { flex: 1 },
-  fieldLabel: { color: '#81919A', letterSpacing: 1, fontSize: 9, fontWeight: '800' },
-  dateInput: { paddingVertical: 9, paddingHorizontal: 0, color: '#102A36', fontSize: 15, fontWeight: '700' },
-  dateDivider: { width: 1, height: 40, backgroundColor: '#E7EEF1', marginHorizontal: 14 },
-  nightBadge: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#EAF7F7', borderRadius: 20, paddingVertical: 5, paddingHorizontal: 9, marginTop: 2 },
-  nightText: { color: '#087E8B', fontSize: 11, fontWeight: '700' },
+  fieldLabel: { color: '#94A3B8', letterSpacing: 1, fontSize: 9, fontWeight: '800' },
+  dateInput: { paddingVertical: 9, paddingHorizontal: 0, color: '#1F2937', fontSize: 15, fontWeight: '700' },
+  dateDivider: { width: 1, height: 40, backgroundColor: '#E5E7EB', marginHorizontal: 14 },
+  nightBadge: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#F3F4F6', borderRadius: 20, paddingVertical: 5, paddingHorizontal: 9, marginTop: 2 },
+  nightText: { color: '#4B5563', fontSize: 11, fontWeight: '700' },
   inlineHint: { color: '#B45309', fontSize: 11, marginTop: 9 },
-  infoBanner: { flexDirection: 'row', alignItems: 'center', gap: 9, borderRadius: 13, backgroundColor: '#EAF7F7', padding: 12 },
+  infoBanner: { flexDirection: 'row', alignItems: 'center', gap: 9, borderRadius: 13, backgroundColor: '#F3F4F6', padding: 12 },
   loadingCard: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 13, backgroundColor: '#FFFFFF', padding: 14 },
   bannerText: { color: '#49616B', fontSize: 12, flex: 1, lineHeight: 18 },
   errorBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, borderRadius: 13, backgroundColor: '#FEF3F2', borderWidth: 1, borderColor: '#FEE4E2', padding: 12 },
   errorText: { color: '#B42318', fontSize: 12, flex: 1, lineHeight: 18 },
-  roomCard: { padding: 15, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E7EEF1', borderRadius: 17 },
-  roomCardSelected: { borderColor: '#087E8B', backgroundColor: '#F4FBFB' },
+  roomCard: { padding: 15, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 17 },
+  roomCardSelected: { borderColor: '#4B5563', backgroundColor: '#F4FBFB' },
   roomCardSoldOut: { opacity: 0.65, backgroundColor: '#F8FAFC' },
   roomTop: { flexDirection: 'row', alignItems: 'center', gap: 11 },
-  roomIcon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 13, backgroundColor: '#EAF7F7' },
-  roomIconSelected: { backgroundColor: '#087E8B' },
+  roomIcon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 13, backgroundColor: '#F3F4F6' },
+  roomIconSelected: { backgroundColor: '#4B5563' },
   roomTitleGroup: { flex: 1 },
-  roomName: { color: '#102A36', fontSize: 15, fontWeight: '700' },
+  roomName: { color: '#1F2937', fontSize: 15, fontWeight: '700' },
   roomCapacity: { color: '#64748B', fontSize: 11, marginTop: 4 },
   roomBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 13, paddingTop: 11, borderTopWidth: 1, borderTopColor: '#EDF2F4' },
-  roomPrice: { color: '#087E8B', fontSize: 15, fontWeight: '800' },
-  perNight: { color: '#81919A', fontSize: 11, fontWeight: '500' },
+  roomPrice: { color: '#4B5563', fontSize: 15, fontWeight: '800' },
+  perNight: { color: '#94A3B8', fontSize: 11, fontWeight: '500' },
   availabilityPill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#ECFDF3', paddingVertical: 5, paddingHorizontal: 8, borderRadius: 20 },
   soldOutPill: { backgroundColor: '#FEF3F2' },
   availabilityDot: { width: 6, height: 6, borderRadius: 4, backgroundColor: '#12B76A' },
@@ -579,23 +579,23 @@ const styles = StyleSheet.create({
   availabilityText: { color: '#027A48', fontSize: 10, fontWeight: '700' },
   soldOutText: { color: '#B42318' },
   counterRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  counterTitle: { color: '#102A36', fontSize: 14, fontWeight: '700' },
-  counterHint: { color: '#81919A', fontSize: 10, marginTop: 3 },
+  counterTitle: { color: '#1F2937', fontSize: 14, fontWeight: '700' },
+  counterHint: { color: '#94A3B8', fontSize: 10, marginTop: 3 },
   counterControls: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  counterButton: { width: 32, height: 32, borderRadius: 10, borderWidth: 1, borderColor: '#DDE6E9', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
-  counterValue: { minWidth: 29, textAlign: 'center', color: '#102A36', fontSize: 15, fontWeight: '800', padding: 0 },
+  counterButton: { width: 32, height: 32, borderRadius: 10, borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  counterValue: { minWidth: 29, textAlign: 'center', color: '#1F2937', fontSize: 15, fontWeight: '800', padding: 0 },
   counterDivider: { height: 1, backgroundColor: '#EDF2F4', marginVertical: 14 },
-  summaryCard: { padding: 16, backgroundColor: '#FFFFFF', borderRadius: 18, borderWidth: 1, borderColor: '#E7EEF1' },
-  summaryHeading: { color: '#102A36', fontSize: 14, fontWeight: '800', marginBottom: 12 },
+  summaryCard: { padding: 16, backgroundColor: '#FFFFFF', borderRadius: 18, borderWidth: 1, borderColor: '#E5E7EB' },
+  summaryHeading: { color: '#1F2937', fontSize: 14, fontWeight: '800', marginBottom: 12 },
   summaryLine: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
   summaryLabel: { color: '#64748B', fontSize: 11, flex: 1 },
   summaryAmount: { color: '#334155', fontSize: 12, fontWeight: '600' },
-  summaryTotalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, marginTop: 12, borderTopWidth: 1, borderTopColor: '#E7EEF1' },
-  summaryTotalLabel: { color: '#102A36', fontSize: 14, fontWeight: '700' },
-  summaryTotal: { color: '#087E8B', fontSize: 19, fontWeight: '800' },
-  summaryNote: { color: '#81919A', fontSize: 10, marginTop: 5 },
-  confirmButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, backgroundColor: '#087E8B', borderRadius: 15, paddingVertical: 16, marginTop: 2, shadowColor: '#087E8B', shadowOpacity: 0.17, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 3 },
+  summaryTotalRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, marginTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB' },
+  summaryTotalLabel: { color: '#1F2937', fontSize: 14, fontWeight: '700' },
+  summaryTotal: { color: '#4B5563', fontSize: 19, fontWeight: '800' },
+  summaryNote: { color: '#94A3B8', fontSize: 10, marginTop: 5 },
+  confirmButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, backgroundColor: '#4B5563', borderRadius: 15, paddingVertical: 16, marginTop: 2, shadowColor: '#4B5563', shadowOpacity: 0.17, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 3 },
   buttonDisabled: { opacity: 0.52 },
   confirmButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
-  secureNote: { textAlign: 'center', color: '#81919A', fontSize: 10, marginTop: -5 },
+  secureNote: { textAlign: 'center', color: '#94A3B8', fontSize: 10, marginTop: -5 },
 });

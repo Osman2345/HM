@@ -50,7 +50,7 @@ export default function ForgotPasswordScreen() {
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
           <View style={styles.iconBadge}>
-            <Ionicons name={sent ? 'mail-open-outline' : 'lock-closed-outline'} size={28} color="#087E8B" />
+            <Ionicons name={sent ? 'mail-open-outline' : 'lock-closed-outline'} size={28} color="#4B5563" />
           </View>
           <Text style={styles.eyebrow}>ACCOUNT RECOVERY</Text>
           <Text style={styles.title}>{sent ? 'Check your inbox' : 'Forgot your password?'}</Text>
@@ -117,7 +117,7 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F1F6F7',
+    backgroundColor: '#F3F4F6',
   },
   container: {
     flexGrow: 1,
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2EAEC',
-    shadowColor: '#123A50',
+    shadowColor: '#111827',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.08,
     shadowRadius: 24,
@@ -145,18 +145,18 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E8F5F3',
+    backgroundColor: '#F3F4F6',
     marginBottom: 22,
   },
   eyebrow: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1.5,
     marginBottom: 9,
   },
   title: {
-    color: '#123A50',
+    color: '#111827',
     fontSize: 27,
     lineHeight: 34,
     fontWeight: '800',
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     marginBottom: 26,
   },
   label: {
-    color: '#123A50',
+    color: '#111827',
     fontSize: 13,
     fontWeight: '700',
     marginBottom: 8,
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 52,
     borderWidth: 1,
-    borderColor: '#D7E1E4',
+    borderColor: '#E5E7EB',
     borderRadius: 13,
     paddingHorizontal: 15,
     color: '#0F172A',
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
     marginTop: 18,
   },
   primaryButtonText: {
@@ -211,11 +211,11 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
-    borderColor: '#D7E1E4',
+    borderColor: '#E5E7EB',
     borderWidth: 1,
   },
   secondaryButtonText: {
-    color: '#123A50',
+    color: '#111827',
     fontSize: 14,
     fontWeight: '700',
   },

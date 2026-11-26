@@ -10,7 +10,7 @@ export default function AdminEntryScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size="large" color="#4B5563" />
         <Text style={styles.message}>Checking administrator access…</Text>
       </View>
     );

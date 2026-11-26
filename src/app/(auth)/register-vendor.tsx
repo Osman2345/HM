@@ -120,7 +120,7 @@ export default function RegisterVendorScreen() {
           value={businessName}
           onChangeText={setBusinessName}
           placeholder="e.g. Ocean View Guest House"
-          placeholderTextColor="#8A9AA6"
+          placeholderTextColor="#94A3B8"
           style={styles.input}
           autoCapitalize="words"
         />
@@ -129,7 +129,7 @@ export default function RegisterVendorScreen() {
           value={fullName}
           onChangeText={setFullName}
           placeholder="Your full name"
-          placeholderTextColor="#8A9AA6"
+          placeholderTextColor="#94A3B8"
           style={styles.input}
           autoCapitalize="words"
         />
@@ -140,7 +140,7 @@ export default function RegisterVendorScreen() {
           autoCapitalize="none"
           keyboardType="email-address"
           placeholder="you@yourbusiness.com"
-          placeholderTextColor="#8A9AA6"
+          placeholderTextColor="#94A3B8"
           style={styles.input}
         />
         <Text style={styles.label}>Password</Text>
@@ -149,7 +149,7 @@ export default function RegisterVendorScreen() {
           onChangeText={setPassword}
           secureTextEntry
           placeholder="Create a password"
-          placeholderTextColor="#8A9AA6"
+          placeholderTextColor="#94A3B8"
           style={styles.input}
         />
 
@@ -179,7 +179,7 @@ export default function RegisterVendorScreen() {
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => setHasViewedPaymentDoc(true)}
-          style={{ color: '#087E8B', fontWeight: 800, marginTop: 6, marginBottom: 13 }}
+          style={{ color: '#4B5563', fontWeight: 800, marginTop: 6, marginBottom: 13 }}
         >
           View Commission Policy PDF
         </a>
@@ -247,17 +247,17 @@ const styles = StyleSheet.create({
     marginBottom: 13,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   eyebrow: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.5,
   },
   title: {
     marginTop: 7,
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 27,
     lineHeight: 33,
     fontWeight: '800',
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   subtitle: {
     marginTop: 8,
     marginBottom: 19,
-    color: '#667783',
+    color: '#6B7280',
     fontSize: 13,
     lineHeight: 19,
   },
@@ -282,13 +282,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#DEE6E8',
     borderRadius: 11,
-    color: '#17354B',
+    color: '#1F2937',
     backgroundColor: '#FFFFFF',
     fontSize: 14,
   },
   sectionTitle: {
     marginTop: 12,
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 17,
     fontWeight: '800',
   },
@@ -296,23 +296,23 @@ const styles = StyleSheet.create({
     marginTop: 4,
     padding: 12,
     borderRadius: 11,
-    backgroundColor: '#EAF4FC',
+    backgroundColor: '#EFF6FF',
   },
   explanationTitle: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 12,
     fontWeight: '800',
   },
   explanationText: {
     marginTop: 4,
-    color: '#526974',
+    color: '#64748B',
     fontSize: 11,
     lineHeight: 16,
   },
   helper: {
     marginTop: 5,
     marginBottom: 10,
-    color: '#718397',
+    color: '#64748B',
     fontSize: 12,
     lineHeight: 18,
   },
@@ -341,10 +341,10 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EAF4F4',
+    backgroundColor: '#F3F4F6',
   },
   policyNumberText: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 10,
     fontWeight: '800',
   },
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   policyTitle: {
-    color: '#294556',
+    color: '#374151',
     fontSize: 12,
     fontWeight: '800',
   },
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
   },
   paymentPolicyPrompt: {
     marginTop: 16,
-    color: '#526974',
+    color: '#64748B',
     fontSize: 12,
     lineHeight: 18,
   },
@@ -395,12 +395,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   checkboxSelected: {
-    borderColor: '#087E8B',
-    backgroundColor: '#087E8B',
+    borderColor: '#4B5563',
+    backgroundColor: '#4B5563',
   },
   agreementText: {
     flex: 1,
-    color: '#3D5360',
+    color: '#374151',
     fontSize: 12,
     lineHeight: 18,
   },
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   disabledButton: {
     opacity: 0.7,
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   secondaryButtonText: {
-    color: '#415866',
+    color: '#374151',
     fontSize: 13,
     fontWeight: '700',
   },

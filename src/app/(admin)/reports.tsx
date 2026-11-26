@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { loadAdminReport, type AdminReport } from '@/services/admin';
+import { createPdfAndShare, downloadCsv, withdrawalStatusLabel } from '@/lib/reporting';
 
 const periods = [30, 90, 365] as const;
 type Period = (typeof periods)[number];
@@ -8,7 +9,18 @@ type Period = (typeof periods)[number];
 const formatMoney = (amount: number) =>
   new Intl.NumberFormat('en-SL', { style: 'currency', currency: 'SLL', maximumFractionDigits: 0 }).format(Number(amount) || 0);
 
-const escapeCsv = (value: unknown) => `"${String(value ?? '').replaceAll('"', '""')}"`;
+const withdrawalStatusStyle = (status: 'pending' | 'approved' | 'paid' | 'rejected') => {
+  switch (status) {
+    case 'paid':
+      return { color: '#1F7A5A', backgroundColor: '#EAFBF5' };
+    case 'approved':
+      return { color: '#4B5563', backgroundColor: '#F3F4F6' };
+    case 'rejected':
+      return { color: '#B42318', backgroundColor: '#FDECEC' };
+    default:
+      return { color: '#C47A2C', backgroundColor: '#FFF3E5' };
+  }
+};
 
 export default function AdminReportsScreen() {
   const [period, setPeriod] = useState<Period>(30);
@@ -52,44 +64,97 @@ export default function AdminReportsScreen() {
 
   const exportCsv = () => {
     if (!report) return;
-    if (Platform.OS !== 'web' || typeof document === 'undefined') {
-      setExportMessage('CSV download is available in the web app.');
-      return;
-    }
-    const header = ['booking_id', 'hotel', 'guest', 'check_in', 'check_out', 'booking_status', 'payment_status', 'total_price'];
-    const rows = report.bookings.map((booking) => [
-      booking.id,
-      booking.hotels?.name ?? '',
-      booking.users?.fullname ?? booking.users?.email ?? '',
-      booking.check_in,
-      booking.check_out,
-      booking.booking_status,
-      booking.payment_status,
-      booking.total_price,
-    ]);
     const content = [
       ['Report period (days)', period],
       ['Revenue', report.revenue],
       ['Commission', report.commission],
       ['New users', report.newUsers],
       [],
-      header,
-      ...rows,
+      ['Transaction report'],
+      ['Transaction ID', 'Booking ID', 'Vendor ID', 'Gross', 'Commission', 'Vendor payout', 'Payout status', 'Status', 'Created at', 'Released at'],
+      ...report.transactions.map((transaction) => [
+        transaction.id,
+        transaction.booking_id,
+        transaction.vendor_id,
+        transaction.total_amount,
+        transaction.commission_amount,
+        transaction.hotel_payout_amount,
+        transaction.vendor_payout_status,
+        transaction.status,
+        transaction.created_at,
+        transaction.released_at ?? '',
+      ]),
+      [],
+      ['Withdrawal report'],
+      ['Request ID', 'Requester role', 'Requester ID', 'Requested amount', 'Provider', 'Phone', 'Status', 'Requested at', 'Reviewed at', 'Withdrawn at', 'Admin note'],
+      ...report.withdrawals.map((withdrawal) => [
+        withdrawal.id,
+        withdrawal.requester_role,
+        withdrawal.requester_id,
+        withdrawal.amount,
+        withdrawal.provider,
+        withdrawal.phone_number,
+        withdrawalStatusLabel(withdrawal.status),
+        withdrawal.requested_at,
+        withdrawal.reviewed_at ?? '',
+        withdrawal.paid_at ?? '',
+        withdrawal.admin_note ?? '',
+      ]),
       [],
       ['Top hotels'],
       ['Hotel', 'Bookings', 'Paid booking revenue'],
       ...report.topHotels.map((hotel) => [hotel.name, hotel.bookings, hotel.revenue]),
-    ]
-      .map((row) => row.map(escapeCsv).join(','))
-      .join('\r\n');
-    const blob = new Blob([`\uFEFF${content}`], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `hotel-admin-report-${period}-days.csv`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-    setExportMessage('CSV report downloaded.');
+    ];
+    const downloaded = downloadCsv(`hotel-admin-report-${period}-days.csv`, content);
+    setExportMessage(downloaded ? 'CSV report downloaded.' : 'CSV download is available in the web app.');
+  };
+
+  const printReport = async () => {
+    if (!report) return;
+    try {
+      setExportMessage(null);
+      await createPdfAndShare(
+        'Admin Financial Report',
+        `${period} day report`,
+        [
+          ['Revenue', formatMoney(report.revenue)],
+          ['Commission', formatMoney(report.commission)],
+          ['Vendor payouts', formatMoney(report.transactions.reduce((sum, transaction) => sum + Number(transaction.hotel_payout_amount), 0))],
+          ['Withdrawals', formatMoney(report.withdrawals.reduce((sum, withdrawal) => sum + Number(withdrawal.amount), 0))],
+        ],
+        [
+          {
+            title: 'Money transactions',
+            headers: ['Transaction ID', 'Vendor ID', 'Gross', 'Commission', 'Vendor payout', 'Status', 'Created'],
+            rows: report.transactions.map((transaction) => [
+              transaction.id,
+              transaction.vendor_id,
+              transaction.total_amount,
+              transaction.commission_amount,
+              transaction.hotel_payout_amount,
+              transaction.vendor_payout_status,
+              transaction.created_at,
+            ]),
+          },
+          {
+            title: 'Withdrawal transactions',
+            headers: ['Request ID', 'Role', 'Requester', 'Amount', 'Provider', 'Status', 'Requested', 'Withdrawn'],
+            rows: report.withdrawals.map((withdrawal) => [
+              withdrawal.id,
+              withdrawal.requester_role,
+              withdrawal.requester_id,
+              withdrawal.amount,
+              withdrawal.provider,
+              withdrawalStatusLabel(withdrawal.status),
+              withdrawal.requested_at,
+              withdrawal.paid_at ?? '',
+            ]),
+          },
+        ],
+      );
+    } catch (caughtError) {
+      setExportMessage(caughtError instanceof Error ? caughtError.message : 'Unable to create the report.');
+    }
   };
 
   const maxCount = Math.max(1, ...chart.map((bucket) => bucket.value));
@@ -131,6 +196,8 @@ export default function AdminReportsScreen() {
             <View style={styles.metricCard}><Text style={styles.metricValue}>{formatMoney(report.revenue)}</Text><Text style={styles.metricLabel}>Revenue</Text></View>
             <View style={styles.metricCard}><Text style={styles.metricValue}>{formatMoney(report.commission)}</Text><Text style={styles.metricLabel}>Commission</Text></View>
             <View style={styles.metricCard}><Text style={styles.metricValue}>{report.newUsers}</Text><Text style={styles.metricLabel}>New users</Text></View>
+            <View style={styles.metricCard}><Text style={styles.metricValue}>{report.withdrawals.length}</Text><Text style={styles.metricLabel}>Withdrawals</Text></View>
+            <View style={styles.metricCard}><Text style={styles.metricValue}>{formatMoney(report.withdrawals.reduce((sum, withdrawal) => sum + Number(withdrawal.amount), 0))}</Text><Text style={styles.metricLabel}>Withdrawal amount</Text></View>
           </View>
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Bookings across the selected period</Text>
@@ -163,8 +230,46 @@ export default function AdminReportsScreen() {
               ))
             )}
           </View>
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Withdrawals</Text>
+            {report.withdrawals.length === 0 ? (
+              <Text style={styles.meta}>No withdrawal requests in this period.</Text>
+            ) : (
+              report.withdrawals.map((withdrawal) => (
+                <View key={withdrawal.id} style={styles.withdrawalRow}>
+                  <View style={styles.withdrawalCopy}>
+                    <Text style={styles.withdrawalTitle}>
+                      {withdrawal.requester_role === 'vendor' ? 'Vendor' : 'Admin'} withdrawal
+                    </Text>
+                    <Text style={styles.meta}>
+                      {withdrawal.provider === 'orange_money' ? 'Orange Money' : 'AfriMoney'} · {withdrawal.phone_number}
+                    </Text>
+                    <Text style={styles.meta}>Requested {new Date(withdrawal.requested_at).toLocaleString()}</Text>
+                    {withdrawal.reviewed_at ? (
+                      <Text style={styles.meta}>Reviewed {new Date(withdrawal.reviewed_at).toLocaleString()}</Text>
+                    ) : null}
+                    {withdrawal.paid_at ? (
+                      <Text style={styles.meta}>Withdrawn {new Date(withdrawal.paid_at).toLocaleString()}</Text>
+                    ) : null}
+                    {withdrawal.admin_note ? (
+                      <Text style={styles.meta}>Note: {withdrawal.admin_note}</Text>
+                    ) : null}
+                  </View>
+                  <View style={styles.withdrawalAmount}>
+                    <Text style={styles.withdrawalValue}>{formatMoney(withdrawal.amount)}</Text>
+                    <Text style={[styles.withdrawalStatus, withdrawalStatusStyle(withdrawal.status)]}>
+                      {withdrawalStatusLabel(withdrawal.status)}
+                    </Text>
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
           <TouchableOpacity accessibilityRole="button" style={styles.exportButton} onPress={exportCsv}>
             <Text style={styles.exportText}>Export CSV</Text>
+          </TouchableOpacity>
+          <TouchableOpacity accessibilityRole="button" style={styles.exportButton} onPress={() => void printReport()}>
+            <Text style={styles.exportText}>Print / PDF</Text>
           </TouchableOpacity>
           {exportMessage ? <Text accessibilityLiveRegion="polite" style={styles.meta}>{exportMessage}</Text> : null}
         </>
@@ -178,7 +283,7 @@ const styles = StyleSheet.create({
   heading: { fontSize: 24, fontWeight: '700', color: '#0F172A' },
   periods: { flexDirection: 'row', gap: 8 },
   period: { minHeight: 42, flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: '#E2E8F0' },
-  periodSelected: { backgroundColor: '#1D4ED8' },
+  periodSelected: { backgroundColor: '#374151' },
   periodText: { color: '#334155', fontWeight: '600' },
   periodTextSelected: { color: '#FFFFFF' },
   state: { color: '#475569', paddingVertical: 16 },
@@ -194,11 +299,17 @@ const styles = StyleSheet.create({
   barRow: { height: 150, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 },
   barGroup: { flex: 1, height: 140, alignItems: 'center', justifyContent: 'flex-end' },
   barValue: { color: '#475569', fontSize: 11, marginBottom: 4 },
-  bar: { width: '70%', maxWidth: 32, backgroundColor: '#2563EB', borderRadius: 6 },
+  bar: { width: '70%', maxWidth: 32, backgroundColor: '#4B5563', borderRadius: 6 },
   barLabel: { color: '#64748B', fontSize: 11, marginTop: 4 },
   hotelRow: { paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#E2E8F0' },
   hotelText: { gap: 4 },
   hotelName: { fontWeight: '700', color: '#0F172A' },
-  exportButton: { minHeight: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: '#1D4ED8' },
+  withdrawalRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#E2E8F0' },
+  withdrawalCopy: { flex: 1, gap: 3 },
+  withdrawalTitle: { fontWeight: '800', color: '#0F172A' },
+  withdrawalAmount: { alignItems: 'flex-end', gap: 6 },
+  withdrawalValue: { fontSize: 15, fontWeight: '800', color: '#0F172A' },
+  withdrawalStatus: { overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, fontSize: 10, fontWeight: '800' },
+  exportButton: { minHeight: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: '#374151' },
   exportText: { color: '#FFFFFF', fontWeight: '700' },
 });

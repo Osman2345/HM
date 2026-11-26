@@ -67,13 +67,13 @@ export default function ProfileScreen() {
               {profile ? 'SL Stay traveller' : 'Sign in to manage your stays'}
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={19} color="#BBD0D9" />
+          <Ionicons name="chevron-forward" size={19} color="#D1D5DB" />
         </View>
       </View>
 
       {profile?.email ? (
         <View style={styles.emailCard}>
-          <Ionicons name="mail-outline" size={18} color="#087E8B" />
+          <Ionicons name="mail-outline" size={18} color="#4B5563" />
           <Text style={styles.email} numberOfLines={1}>{profile.email}</Text>
         </View>
       ) : null}
@@ -135,7 +135,7 @@ function MenuSection({ title, rows }: { title: string; rows: MenuRow[] }) {
         {rows.map((row, index) => {
           const content = (
             <>
-              <View style={styles.rowIcon}><Ionicons name={row.icon} size={18} color="#425E70" /></View>
+              <View style={styles.rowIcon}><Ionicons name={row.icon} size={18} color="#374151" /></View>
               <View style={styles.rowText}>
                 <Text style={styles.rowTitle}>{row.title}</Text>
                 {row.detail ? <Text style={styles.rowDetail}>{row.detail}</Text> : null}
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     paddingTop: 17,
     paddingHorizontal: 19,
     paddingBottom: 20,
-    backgroundColor: '#123A50',
+    backgroundColor: '#111827',
   },
   heroTopRow: {
     flexDirection: 'row',
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     width: 31,
     height: 31,
     borderRadius: 10,
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 19,
     borderWidth: 1,
-    borderColor: '#547182',
+    borderColor: '#64748B',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFE3A5',
   },
   avatarText: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   },
   memberLabel: {
     marginTop: 3,
-    color: '#D4E2E6',
+    color: '#E5E7EB',
     fontSize: 12,
   },
   emailCard: {
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   sectionHeading: {
     marginHorizontal: 20,
     marginBottom: 8,
-    color: '#415462',
+    color: '#374151',
     fontSize: 12,
     fontWeight: '800',
   },
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     width: 31,
     height: 31,
     borderRadius: 10,
-    backgroundColor: '#F0F5F5',
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   rowTitle: {
-    color: '#263F50',
+    color: '#374151',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   footerBrand: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.4,

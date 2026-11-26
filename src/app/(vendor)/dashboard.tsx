@@ -49,9 +49,9 @@ const formatMoney = (amount: number) =>
   }).format(Number(amount) || 0);
 
 const metrics = [
-  { key: 'bookings', label: 'Total bookings', icon: 'calendar-outline', tint: '#2879B8', background: '#EAF4FC' },
+  { key: 'bookings', label: 'Total bookings', icon: 'calendar-outline', tint: '#4B5563', background: '#EFF6FF' },
   { key: 'pendingBookings', label: 'Pending requests', icon: 'time-outline', tint: '#C47A2C', background: '#FFF3E5' },
-  { key: 'liveHotels', label: 'Live properties', icon: 'business-outline', tint: '#087E8B', background: '#E8F5F3' },
+  { key: 'liveHotels', label: 'Live properties', icon: 'business-outline', tint: '#4B5563', background: '#F3F4F6' },
   { key: 'pendingHotels', label: 'Needs attention', icon: 'hourglass-outline', tint: '#7861BB', background: '#F1EDFC' },
 ] as const;
 
@@ -180,7 +180,7 @@ export default function VendorDashboardScreen() {
           </TouchableOpacity>
         </View>
         <View style={styles.welcomeIcon}>
-          <Ionicons name="business-outline" size={30} color="#D8F5F0" />
+          <Ionicons name="business-outline" size={30} color="#F3F4F6" />
         </View>
       </View>
 
@@ -239,13 +239,13 @@ export default function VendorDashboardScreen() {
                   onPress={() => router.push('/(vendor)/bookings')}
                 >
                   <Text style={styles.viewAllText}>View all</Text>
-                  <Ionicons name="arrow-forward" size={14} color="#087E8B" />
+                  <Ionicons name="arrow-forward" size={14} color="#4B5563" />
                 </TouchableOpacity>
               </View>
 
               {bookings.length === 0 ? (
                 <View style={styles.emptyState}>
-                  <View style={styles.emptyIcon}><Ionicons name="calendar-outline" size={21} color="#087E8B" /></View>
+                  <View style={styles.emptyIcon}><Ionicons name="calendar-outline" size={21} color="#4B5563" /></View>
                   <Text style={styles.emptyTitle}>No bookings yet</Text>
                   <Text style={styles.emptyCopy}>When guests book one of your properties, it will appear here.</Text>
                 </View>
@@ -253,7 +253,7 @@ export default function VendorDashboardScreen() {
                 bookings.map((booking) => (
                   <View key={booking.id} style={styles.bookingRow}>
                     <View style={styles.bookingIcon}>
-                      <Ionicons name="bed-outline" size={17} color="#087E8B" />
+                      <Ionicons name="bed-outline" size={17} color="#4B5563" />
                     </View>
                     <View style={styles.bookingCopy}>
                       <Text style={styles.bookingHotel} numberOfLines={1}>
@@ -285,7 +285,7 @@ export default function VendorDashboardScreen() {
                   <Text style={styles.panelTitle}>Property status</Text>
                   <Text style={styles.panelSubtitle}>Approved vendor listings publish immediately</Text>
                 </View>
-                <View style={styles.panelIcon}><Ionicons name="business-outline" size={18} color="#087E8B" /></View>
+                <View style={styles.panelIcon}><Ionicons name="business-outline" size={18} color="#4B5563" /></View>
               </View>
               {hotels.length === 0 ? (
                 <View style={styles.emptyState}>
@@ -294,7 +294,7 @@ export default function VendorDashboardScreen() {
                 </View>
               ) : hotels.slice(0, 5).map((hotel) => (
                 <View key={hotel.id} style={styles.hotelRow}>
-                  <View style={styles.hotelMark}><Ionicons name="business-outline" size={16} color="#087E8B" /></View>
+                  <View style={styles.hotelMark}><Ionicons name="business-outline" size={16} color="#4B5563" /></View>
                   <Text style={styles.hotelName} numberOfLines={1}>{hotel.name}</Text>
                   <View style={[
                     styles.statusBadge,
@@ -315,7 +315,7 @@ export default function VendorDashboardScreen() {
                 onPress={() => router.push('/(vendor)/hotels')}
               >
                 <Text style={styles.panelLinkText}>Manage your properties</Text>
-                <Ionicons name="arrow-forward" size={15} color="#087E8B" />
+                <Ionicons name="arrow-forward" size={15} color="#4B5563" />
               </TouchableOpacity>
             </View>
           </View>
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 27,
     paddingVertical: 23,
     borderRadius: 19,
-    backgroundColor: '#173B4A',
+    backgroundColor: '#374151',
     overflow: 'hidden',
   },
   welcomeCardCompact: {
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   eyebrow: {
-    color: '#A5DCD7',
+    color: '#D1D5DB',
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 1.5,
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     marginTop: 9,
   },
   welcomeSubtitle: {
-    color: '#C2D4D9',
+    color: '#D1D5DB',
     fontSize: 12,
     lineHeight: 18,
     marginTop: 6,
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 9,
     borderRadius: 9,
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   welcomeActionText: {
     color: '#FFFFFF',
@@ -448,12 +448,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sectionTitle: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 17,
     fontWeight: '800',
   },
   sectionSubtitle: {
-    color: '#8B9AA1',
+    color: '#94A3B8',
     fontSize: 11,
     marginTop: 4,
   },
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   metricValue: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 26,
     fontWeight: '900',
     marginTop: 15,
@@ -558,11 +558,11 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#EFF2F2',
+    borderColor: '#F3F4F6',
   },
   earningsColumn: {
     flex: 1,
-    color: '#718397',
+    color: '#64748B',
     fontSize: 8,
     fontWeight: '800',
   },
@@ -574,7 +574,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#EFF2F2',
+    borderBottomColor: '#F3F4F6',
   },
   earningsValue: {
     flex: 1,
@@ -583,7 +583,7 @@ const styles = StyleSheet.create({
   },
   earningsPayout: {
     flex: 1,
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 9,
     fontWeight: '800',
   },
@@ -601,12 +601,12 @@ const styles = StyleSheet.create({
   },
   emptyEarnings: {
     paddingVertical: 15,
-    color: '#718397',
+    color: '#64748B',
     fontSize: 11,
   },
   payoutNote: {
     marginTop: 12,
-    color: '#718397',
+    color: '#64748B',
     fontSize: 10,
     lineHeight: 15,
   },
@@ -617,12 +617,12 @@ const styles = StyleSheet.create({
     marginBottom: 13,
   },
   panelTitle: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 14,
     fontWeight: '800',
   },
   panelSubtitle: {
-    color: '#8B9AA1',
+    color: '#94A3B8',
     fontSize: 10,
     marginTop: 4,
   },
@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EAF5F4',
+    backgroundColor: '#F3F4F6',
   },
   viewAllButton: {
     flexDirection: 'row',
@@ -640,7 +640,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   viewAllText: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 10,
     fontWeight: '800',
   },
@@ -650,7 +650,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     borderTopWidth: 1,
-    borderTopColor: '#EFF2F2',
+    borderTopColor: '#F3F4F6',
   },
   bookingIcon: {
     width: 34,
@@ -658,19 +658,19 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E8F5F3',
+    backgroundColor: '#F3F4F6',
   },
   bookingCopy: {
     flex: 1,
     minWidth: 0,
   },
   bookingHotel: {
-    color: '#294655',
+    color: '#374151',
     fontSize: 11,
     fontWeight: '800',
   },
   bookingMeta: {
-    color: '#8B9AA1',
+    color: '#94A3B8',
     fontSize: 9,
     marginTop: 3,
   },
@@ -706,17 +706,17 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EAF5F4',
+    backgroundColor: '#F3F4F6',
     marginBottom: 10,
   },
   emptyTitle: {
-    color: '#294655',
+    color: '#374151',
     fontSize: 12,
     fontWeight: '800',
     textAlign: 'center',
   },
   emptyCopy: {
-    color: '#8B9AA1',
+    color: '#94A3B8',
     fontSize: 10,
     lineHeight: 15,
     marginTop: 5,
@@ -729,7 +729,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     borderTopWidth: 1,
-    borderTopColor: '#EFF2F2',
+    borderTopColor: '#F3F4F6',
   },
   hotelMark: {
     width: 29,
@@ -737,11 +737,11 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EAF5F4',
+    backgroundColor: '#F3F4F6',
   },
   hotelName: {
     flex: 1,
-    color: '#526974',
+    color: '#64748B',
     fontSize: 10,
     fontWeight: '700',
   },
@@ -753,12 +753,12 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   panelLinkText: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 10,
     fontWeight: '800',
   },
   state: {
-    color: '#718397',
+    color: '#64748B',
     paddingVertical: 10,
   },
   errorCard: {

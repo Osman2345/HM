@@ -1,5 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Image, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
 export default function MobileAuthHero() {
   const { width } = useWindowDimensions();
@@ -12,11 +11,11 @@ export default function MobileAuthHero() {
       <View style={[styles.ring, styles.ringLarge, { top: 36, right: -width * 0.52 }]} />
       <View style={[styles.ring, styles.ringMedium, { top: 75, right: -width * 0.34 }]} />
       <View style={[styles.brand, { top: 18 }]}>
-        <View style={styles.brandIcon}>
-          <Ionicons name="bed" size={18} color="#FFFFFF" />
-        </View>
+        <Image source={require('../../../assets/images/icon.png')} style={styles.brandIcon} accessibilityLabel="SL Stay logo" />
         <View>
-          <Text style={styles.brandName} accessibilityLabel="SL Stay">SL STAY</Text>
+          <Text style={styles.brandName} accessibilityLabel="SL Stay">
+            SL <Text style={styles.brandAccent}>STAY</Text>
+          </Text>
           <Text style={styles.brandTagline}>FIND YOUR PLACE</Text>
         </View>
       </View>
@@ -31,8 +30,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
+    top: 0,
+    height: 280,
     overflow: 'hidden',
-    backgroundColor: '#087E8B',
+    backgroundColor: '#123A50',
   },
   ring: {
     position: 'absolute',
@@ -65,16 +66,17 @@ const styles = StyleSheet.create({
   brandIcon: {
     width: 38,
     height: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.16)',
+    backgroundColor: '#FFFFFF',
   },
   brandName: {
     color: '#FFFFFF',
     fontSize: 17,
     fontWeight: '900',
     letterSpacing: 1.6,
+  },
+  brandAccent: {
+    color: '#F2B544',
   },
   brandTagline: {
     marginTop: 2,

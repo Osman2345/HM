@@ -96,7 +96,7 @@ export default function VendorHotelsIndexScreen() {
           <Text style={styles.subtitle}>Keep your hotel details, room rates, and guest information up to date.</Text>
         </View>
         <View style={styles.heroIcon}>
-          <Ionicons name="business-outline" size={25} color="#D8F5F0" />
+          <Ionicons name="business-outline" size={25} color="#F3F4F6" />
         </View>
       </View>
 
@@ -144,7 +144,7 @@ export default function VendorHotelsIndexScreen() {
 
       {!loading && !error && hotels.length === 0 ? (
         <View style={styles.emptyCard}>
-          <View style={styles.emptyIcon}><Ionicons name="home-outline" size={27} color="#087E8B" /></View>
+          <View style={styles.emptyIcon}><Ionicons name="home-outline" size={27} color="#4B5563" /></View>
           <Text style={styles.emptyTitle}>Your property portfolio starts here</Text>
           <Text style={styles.emptyText}>
             Add a complete listing with location, photos, amenities, house policies, and room pricing.
@@ -181,7 +181,7 @@ export default function VendorHotelsIndexScreen() {
                 <View style={styles.hotelTitleCopy}>
                   <Text style={styles.hotelName} numberOfLines={1}>{hotel.name}</Text>
                   <Text style={styles.hotelLocation} numberOfLines={1}>
-                    <Ionicons name="location-outline" size={13} color="#82939B" /> {hotel.city}, {hotel.country}
+                    <Ionicons name="location-outline" size={13} color="#9CA3AF" /> {hotel.city}, {hotel.country}
                   </Text>
                 </View>
                 <View style={[styles.statusBadge, statusApproved ? styles.approvedBadge : styles.reviewBadge]}>
@@ -194,7 +194,7 @@ export default function VendorHotelsIndexScreen() {
               <Text style={styles.description} numberOfLines={2}>{hotel.description}</Text>
               <View style={styles.hotelMetaRow}>
                 <Text style={styles.hotelMeta}>
-                  <Ionicons name="bed-outline" size={14} color="#087E8B" /> {hotel.rooms.length} room type{hotel.rooms.length === 1 ? '' : 's'}
+                  <Ionicons name="bed-outline" size={14} color="#4B5563" /> {hotel.rooms.length} room type{hotel.rooms.length === 1 ? '' : 's'}
                 </Text>
                 {cheapestRoom ? (
                   <Text style={styles.hotelPrice}>From {formatMoney(cheapestRoom)} / night</Text>
@@ -208,7 +208,7 @@ export default function VendorHotelsIndexScreen() {
                 <Text style={styles.updatedText}>Added {new Date(hotel.created_at).toLocaleDateString()}</Text>
                 <Link href={{ pathname: '/(vendor)/hotels/new', params: { hotelId: hotel.id } }} asChild>
                   <TouchableOpacity style={styles.editButton} accessibilityRole="button" accessibilityLabel={`Edit ${hotel.name}`}>
-                    <Ionicons name="create-outline" size={15} color="#087E8B" />
+                    <Ionicons name="create-outline" size={15} color="#4B5563" />
                     <Text style={styles.editButtonText}>Edit listing</Text>
                   </TouchableOpacity>
                 </Link>
@@ -234,13 +234,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 21,
     borderRadius: 17,
-    backgroundColor: '#173B4A',
+    backgroundColor: '#374151',
   },
   heroCopy: {
     flex: 1,
   },
   eyebrow: {
-    color: '#A5DCD7',
+    color: '#D1D5DB',
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 1.4,
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     maxWidth: 470,
-    color: '#C2D4D9',
+    color: '#D1D5DB',
     fontSize: 12,
     lineHeight: 18,
     marginTop: 6,
@@ -274,12 +274,12 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   sectionTitle: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 16,
     fontWeight: '800',
   },
   sectionSubtitle: {
-    color: '#8B9AA1',
+    color: '#94A3B8',
     fontSize: 10,
     marginTop: 4,
   },
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 13,
     borderRadius: 10,
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   addButtonText: {
     color: '#FFFFFF',
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   state: {
-    color: '#718397',
+    color: '#64748B',
     paddingVertical: 12,
   },
   errorCard: {
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
     padding: 27,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E8EFF0',
+    borderColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
   },
   emptyIcon: {
@@ -372,17 +372,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 13,
-    backgroundColor: '#EAF5F4',
+    backgroundColor: '#F3F4F6',
   },
   emptyTitle: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 15,
     fontWeight: '800',
     textAlign: 'center',
   },
   emptyText: {
     maxWidth: 360,
-    color: '#84949A',
+    color: '#94A3B8',
     fontSize: 11,
     lineHeight: 17,
     marginTop: 7,
@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   emptyButtonText: {
     color: '#FFFFFF',
@@ -407,13 +407,13 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: '#E8EFF0',
+    borderColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
   },
   hotelImage: {
     width: '100%',
     height: 185,
-    backgroundColor: '#EDF3F4',
+    backgroundColor: '#F3F4F6',
   },
   imagePlaceholder: {
     alignItems: 'center',
@@ -431,12 +431,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   hotelName: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 16,
     fontWeight: '900',
   },
   hotelLocation: {
-    color: '#82939B',
+    color: '#9CA3AF',
     fontSize: 10,
     marginTop: 5,
   },
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   hotelPrice: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 10,
     fontWeight: '800',
   },
@@ -528,10 +528,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: 8,
-    backgroundColor: '#EAF5F4',
+    backgroundColor: '#F3F4F6',
   },
   editButtonText: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 10,
     fontWeight: '800',
   },

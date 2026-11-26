@@ -50,14 +50,14 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     justifyContent: 'flex-end',
     alignItems: 'center',
-    backgroundColor: '#123A50',
+    backgroundColor: '#111827',
   },
   webHeader: {
     minHeight: 116,
     overflow: 'hidden',
     justifyContent: 'center',
     paddingHorizontal: 32,
-    backgroundColor: '#123A50',
+    backgroundColor: '#111827',
   },
   webAccent: {
     position: 'absolute',
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     width: 230,
     height: 230,
     borderRadius: 115,
-    backgroundColor: '#1B5363',
+    backgroundColor: '#374151',
     opacity: 0.6,
   },
   webHeaderContent: {
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 13,
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   webBrand: {
     color: '#FFFFFF',
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   },
   webTagline: {
     marginTop: 3,
-    color: '#C2D4D9',
+    color: '#D1D5DB',
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 1.3,

@@ -43,7 +43,7 @@ export default function HotelMapNative({
           }}
           title={hotel.name}
           description={hotel.location || hotel.city}
-          pinColor={selectedHotelId === hotel.id ? '#087E8B' : '#F2B544'}
+          pinColor={selectedHotelId === hotel.id ? '#4B5563' : '#F2B544'}
           onPress={() => onSelectHotel(hotel)}
         />
       ))}

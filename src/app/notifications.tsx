@@ -147,7 +147,7 @@ export default function NotificationsScreen() {
   if (!userId) {
     return (
       <View style={styles.guestWrap}>
-        <View style={styles.guestIcon}><Ionicons name="notifications-outline" size={29} color="#087E8B" /></View>
+        <View style={styles.guestIcon}><Ionicons name="notifications-outline" size={29} color="#4B5563" /></View>
         <Text style={styles.heading}>Your notifications</Text>
         <Text style={styles.guestText}>Sign in to see updates about your bookings and payments.</Text>
         <TouchableOpacity style={styles.signInButton} onPress={() => router.push('/login')}>
@@ -181,7 +181,7 @@ export default function NotificationsScreen() {
       ) : null}
       {!loading && items.length === 0 && !error ? (
         <View style={styles.emptyCard}>
-          <View style={styles.emptyIcon}><Ionicons name="notifications-outline" size={25} color="#087E8B" /></View>
+          <View style={styles.emptyIcon}><Ionicons name="notifications-outline" size={25} color="#4B5563" /></View>
           <Text style={styles.emptyTitle}>You’re all caught up</Text>
           <Text style={styles.emptyText}>Booking and payment updates will show up here.</Text>
         </View>
@@ -196,7 +196,7 @@ export default function NotificationsScreen() {
           accessibilityRole={item.booking_id ? 'button' : undefined}
         >
           <View style={[styles.notificationIcon, !item.read ? styles.unreadIcon : null]}>
-            <Ionicons name={iconFor(item.title)} size={19} color="#087E8B" />
+            <Ionicons name={iconFor(item.title)} size={19} color="#4B5563" />
           </View>
           <View style={styles.notificationContent}>
             <View style={styles.titleRow}>
@@ -208,7 +208,7 @@ export default function NotificationsScreen() {
             {item.booking_id ? (
               <View style={styles.bookingLink}>
                 <Text style={styles.bookingLinkText}>View booking</Text>
-                <Ionicons name="arrow-forward" size={14} color="#087E8B" />
+                <Ionicons name="arrow-forward" size={14} color="#4B5563" />
               </View>
             ) : null}
           </View>
@@ -252,19 +252,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   eyebrow: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.4,
   },
   heading: {
     marginTop: 4,
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 25,
     fontWeight: '800',
   },
   markAll: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -285,19 +285,19 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#EAF4F4',
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 2,
   },
   emptyTitle: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 15,
     fontWeight: '800',
   },
   emptyText: {
     maxWidth: 280,
-    color: '#718397',
+    color: '#64748B',
     fontSize: 12,
     lineHeight: 18,
     textAlign: 'center',
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     borderColor: '#E7ECEE',
   },
   unreadCard: {
-    borderColor: '#C9E1E2',
+    borderColor: '#E5E7EB',
     backgroundColor: '#FCFFFF',
   },
   notificationIcon: {
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
   },
   notificationTitle: {
     flex: 1,
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 13,
     fontWeight: '800',
   },
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   message: {
     marginTop: 4,
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   bookingLinkText: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 11,
     fontWeight: '800',
   },
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
   guestText: {
     marginTop: 9,
     maxWidth: 300,
-    color: '#718397',
+    color: '#64748B',
     fontSize: 13,
     lineHeight: 20,
     textAlign: 'center',
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   signInText: {
     color: '#FFFFFF',

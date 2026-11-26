@@ -1,11 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link, useLocalSearchParams, useRouter } from 'expo-router';
+import { Link, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Image, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
-import { getCached, invalidateCached, loadCached } from '@/lib/query-cache';
+import { invalidateCached, loadCached } from '@/lib/query-cache';
 import HotelListSkeleton from '@/components/skeletons/HotelListSkeleton';
 import useDelayedLoading from '@/hooks/useDelayedLoading';
 import { useAuthStore } from '@/store/auth.store';
@@ -40,37 +40,30 @@ function SearchResults({ initialQuery }: { initialQuery: string }) {
   const showSkeleton = useDelayedLoading(loading);
 
   const loadResults = useCallback(async () => {
-    const cacheKey = `hotels:search:${query.trim().toLowerCase()}`;
-    const cached = getCached<{ rows: HotelRow[]; count: number }>(cacheKey);
-    if (cached) {
-      setResults(cached.rows);
-      setResultCount(cached.count);
-    } else {
-      setLoading(true);
-    }
+    setLoading(true);
+    setResults([]);
+    setResultCount(0);
+    setAiSearch(null);
     setError(null);
 
     try {
       const normalizedQuery = query.trim();
-      const result = await loadCached(cacheKey, async () => {
-        let request = supabase
-          .from('hotels')
-          .select('id, name, description, location, city, country, rating, review_count, featured, cover_image, images, amenities, policies, rooms', { count: 'exact' })
-          .eq('approval_status', 'approved');
+      let request = supabase
+        .from('hotels')
+        .select('id, name, description, location, city, country, rating, review_count, featured, cover_image, images, amenities, policies, rooms', { count: 'exact' })
+        .eq('approval_status', 'approved');
 
-        if (normalizedQuery) {
-          request = request.or(
-            `name.ilike.%${normalizedQuery}%,city.ilike.%${normalizedQuery}%,description.ilike.%${normalizedQuery}%`,
-          );
-        }
+      if (normalizedQuery) {
+        request = request.or(
+          `name.ilike.%${normalizedQuery}%,city.ilike.%${normalizedQuery}%,description.ilike.%${normalizedQuery}%`,
+        );
+      }
 
-        const { data, count, error: fetchError } = await request.limit(30);
-        if (fetchError) throw fetchError;
-        const rows = (data ?? []) as HotelRow[];
-        return { rows, count: count ?? rows.length };
-      });
-      setResults(result.rows);
-      setResultCount(result.count);
+      const { data, count, error: fetchError } = await request.limit(30);
+      if (fetchError) throw fetchError;
+      const rows = (data ?? []) as HotelRow[];
+      setResults(rows);
+      setResultCount(count ?? rows.length);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'Unable to search hotels');
       setResults([]);
@@ -80,13 +73,17 @@ function SearchResults({ initialQuery }: { initialQuery: string }) {
     }
   }, [query]);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
+    let active = true;
     const timer = setTimeout(() => {
-      void loadResults();
+      if (active) void loadResults();
     }, 250);
 
-    return () => clearTimeout(timer);
-  }, [loadResults]);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [loadResults]));
 
   useEffect(() => {
     let isCurrent = true;
@@ -394,7 +391,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   blueHeader: {
-    backgroundColor: '#0B4AA8',
+    backgroundColor: '#4B5563',
     paddingHorizontal: 16,
     paddingBottom: 15,
   },
@@ -493,7 +490,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 9,
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   retryText: {
     color: '#FFFFFF',
@@ -629,7 +626,7 @@ const styles = StyleSheet.create({
     minWidth: 40,
     minHeight: 38,
     borderRadius: 7,
-    backgroundColor: '#0B4AA8',
+    backgroundColor: '#4B5563',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 5,

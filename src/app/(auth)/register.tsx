@@ -54,7 +54,7 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View style={styles.screen}>
+    <View style={StyleSheet.flatten([styles.screen, Platform.OS !== 'web' && styles.mobileScreen])}>
       {Platform.OS === 'web' ? <MobileAuthHeader /> : <MobileAuthHero />}
       <ScrollView
         style={Platform.OS !== 'web' ? styles.mobileScroll : undefined}
@@ -68,13 +68,16 @@ export default function RegisterScreen() {
         <Text style={StyleSheet.flatten([styles.title, Platform.OS !== 'web' && styles.mobileTitle])}>
           {Platform.OS === 'web' ? 'Create your account' : 'Sign up'}
         </Text>
+        {Platform.OS !== 'web' ? (
+          <Text style={styles.subtitle}>Create an account to save stays and manage your bookings.</Text>
+        ) : null}
         <Text style={styles.label}>Full name</Text>
         <TextInput
           value={fullName}
           onChangeText={setFullName}
           autoComplete="name"
           placeholder="Full name"
-          placeholderTextColor="#94A3A8"
+          placeholderTextColor="#94A3B8"
           style={StyleSheet.flatten([styles.input, Platform.OS !== 'web' && styles.mobileInput])}
         />
         <Text style={styles.label}>Email</Text>
@@ -85,7 +88,7 @@ export default function RegisterScreen() {
           keyboardType="email-address"
           autoComplete="email"
           placeholder="name@example.com"
-          placeholderTextColor="#94A3A8"
+          placeholderTextColor="#94A3B8"
           style={StyleSheet.flatten([styles.input, Platform.OS !== 'web' && styles.mobileInput])}
         />
         <Text style={styles.label}>Password</Text>
@@ -95,7 +98,7 @@ export default function RegisterScreen() {
           secureTextEntry
           autoComplete="new-password"
           placeholder="At least 6 characters"
-          placeholderTextColor="#94A3A8"
+          placeholderTextColor="#94A3B8"
           style={StyleSheet.flatten([styles.input, Platform.OS !== 'web' && styles.mobileInput])}
         />
         {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
@@ -124,11 +127,13 @@ export default function RegisterScreen() {
             </Text>
           </TouchableOpacity>
         </Link>
-        <Link href="/login?audience=vendor" asChild>
-          <TouchableOpacity style={styles.vendorLink}>
-            <Text style={styles.vendorLinkText}>Sign in as a vendor</Text>
-          </TouchableOpacity>
-        </Link>
+        {Platform.OS === 'web' ? (
+          <Link href="/login?audience=vendor" asChild>
+            <TouchableOpacity style={styles.vendorLink}>
+              <Text style={styles.vendorLinkText}>Sign in as a vendor</Text>
+            </TouchableOpacity>
+          </Link>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -138,6 +143,9 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  mobileScreen: {
+    backgroundColor: '#F8FAFC',
   },
   mobileScroll: {
     flex: 1,
@@ -171,8 +179,15 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     marginBottom: 18,
   },
+  subtitle: {
+    marginTop: -10,
+    marginBottom: 20,
+    color: '#526974',
+    fontSize: 15,
+    lineHeight: 22,
+  },
   mobileTitle: {
-    color: '#17354B',
+    color: '#123A50',
     fontSize: 28,
     fontWeight: '800',
     marginBottom: 18,
@@ -196,7 +211,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 0,
     borderRightWidth: 0,
     backgroundColor: 'transparent',
-    color: '#17354B',
+    color: '#123A50',
     fontSize: 14,
   },
   label: {
@@ -209,7 +224,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   primaryButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#4B5563',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
@@ -217,7 +232,7 @@ const styles = StyleSheet.create({
   },
   mobilePrimaryButton: {
     minHeight: 48,
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: '#087E8B',
     marginTop: 18,
   },
@@ -247,7 +262,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   mobileSecondaryButtonText: {
-    color: '#718397',
+    color: '#526974',
     fontSize: 12,
     fontWeight: '500',
   },

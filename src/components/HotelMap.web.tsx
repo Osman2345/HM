@@ -1,5 +1,5 @@
-import { APIProvider, Map, Marker } from '@vis.gl/react-google-maps';
-import { StyleSheet, Text, View } from 'react-native';
+import { createElement, type CSSProperties } from 'react';
+import { StyleSheet, View } from 'react-native';
 
 type HotelMapItem = {
   id: string;
@@ -23,23 +23,18 @@ type HotelMapProps = {
   onSelectHotel: (hotel: HotelMapItem) => void;
 };
 
+const iframeStyle: CSSProperties = {
+  display: 'block',
+  width: '100%',
+  height: '100%',
+  border: 0,
+};
+
 export default function HotelMapWeb({
   hotels,
   selectedHotelId,
   region,
-  onSelectHotel,
 }: HotelMapProps) {
-  const webApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_WEB_API_KEY ?? '';
-
-  if (!webApiKey) {
-    return (
-      <View style={styles.webMapFallback}>
-        <Text style={styles.webMapTitle}>Map preview</Text>
-        <Text style={styles.webMapText}>Add EXPO_PUBLIC_GOOGLE_MAPS_WEB_API_KEY to enable the browser map.</Text>
-      </View>
-    );
-  }
-
   const selectedLocation =
     hotels.find((hotel) => hotel.id === selectedHotelId && hotel.latitude != null && hotel.longitude != null) ??
     hotels.find((hotel) => hotel.latitude != null && hotel.longitude != null) ??
@@ -50,55 +45,40 @@ export default function HotelMapWeb({
     lng: selectedLocation?.longitude ?? region.longitude,
   };
 
+  const latitudeDelta = Math.max(Math.abs(region.latitudeDelta), 0.02);
+  const longitudeDelta = Math.max(Math.abs(region.longitudeDelta), 0.02);
+  const bounds = [
+    center.lng - longitudeDelta / 2,
+    center.lat - latitudeDelta / 2,
+    center.lng + longitudeDelta / 2,
+    center.lat + latitudeDelta / 2,
+  ].join(',');
+  const mapUrl = new URL('https://www.openstreetmap.org/export/embed.html');
+  mapUrl.searchParams.set('bbox', bounds);
+  mapUrl.searchParams.set('layer', 'mapnik');
+  if (selectedLocation) {
+    mapUrl.searchParams.set('marker', `${center.lat},${center.lng}`);
+  }
+
   return (
-    <APIProvider apiKey={webApiKey}>
-      <Map
-        style={styles.map}
-        defaultCenter={center}
-        defaultZoom={12}
-        gestureHandling="greedy"
-        disableDefaultUI={false}
-      >
-        {hotels
-          .filter((hotel) => hotel.latitude != null && hotel.longitude != null)
-          .map((hotel) => (
-            <Marker
-              key={hotel.id}
-              position={{
-                lat: hotel.latitude ?? center.lat,
-                lng: hotel.longitude ?? center.lng,
-              }}
-              title={hotel.name}
-              onClick={() => onSelectHotel(hotel)}
-            />
-          ))}
-      </Map>
-    </APIProvider>
+    <View style={styles.map}>
+      {createElement('iframe', {
+        title: selectedLocation ? `Map showing ${selectedLocation.name}` : 'Map of nearby stays',
+        src: mapUrl.toString(),
+        loading: 'lazy',
+        referrerPolicy: 'no-referrer',
+        allowFullScreen: true,
+        style: iframeStyle,
+      })}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   map: {
+    position: 'relative',
     width: '100%',
     height: '100%',
-  },
-  webMapFallback: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#EBF7F9',
-    paddingHorizontal: 20,
-  },
-  webMapTitle: {
-    color: '#17354B',
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  webMapText: {
-    marginTop: 8,
-    color: '#5E7382',
-    textAlign: 'center',
-    fontSize: 13,
-    fontWeight: '600',
+    overflow: 'hidden',
   },
 });

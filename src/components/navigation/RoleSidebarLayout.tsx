@@ -147,7 +147,7 @@ function RoleSidebarLayout({ brand, description, items, showSignOut = false }: R
                 style={styles.menuButton}
                 onPress={() => setDrawerOpen(true)}
               >
-                <Ionicons name="menu-outline" size={23} color="#17354B" />
+                <Ionicons name="menu-outline" size={23} color="#1F2937" />
               </TouchableOpacity>
             ) : null}
             <View style={styles.topbarTitles}>
@@ -161,7 +161,7 @@ function RoleSidebarLayout({ brand, description, items, showSignOut = false }: R
                 style={styles.walletBadge}
                 onPress={() => router.push(role === 'admin' ? '/(admin)/payouts' : '/(vendor)/payouts')}
               >
-                <Ionicons name="wallet-outline" size={16} color="#087E8B" />
+                <Ionicons name="wallet-outline" size={16} color="#4B5563" />
                 <View>
                   <Text style={styles.walletBadgeLabel}>BALANCE</Text>
                   <Text style={styles.walletBadgeAmount}>{walletBalance === null ? '—' : `Le ${walletBalance.toLocaleString()}`}</Text>
@@ -188,7 +188,7 @@ function RoleSidebarLayout({ brand, description, items, showSignOut = false }: R
               </TouchableOpacity>
             ) : null}
             <View style={styles.portalBadge}>
-              <Ionicons name="shield-checkmark-outline" size={16} color="#087E8B" />
+              <Ionicons name="shield-checkmark-outline" size={16} color="#4B5563" />
               <Text style={styles.portalBadgeText}>{description === 'ADMINISTRATION' ? 'Admin' : 'Partner'}</Text>
             </View>
           </View>
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   },
   sidebar: {
     width: 258,
-    backgroundColor: '#112D3C',
+    backgroundColor: '#111827',
     paddingHorizontal: 17,
     paddingTop: 22,
     paddingBottom: 14,
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   brandName: {
     color: '#FFFFFF',
@@ -316,14 +316,14 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   brandDescription: {
-    color: '#91AAB6',
+    color: '#9CA3AF',
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 1.2,
     marginTop: 3,
   },
   navCaption: {
-    color: '#78919E',
+    color: '#9CA3AF',
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 1.4,
@@ -342,11 +342,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   navItemSelected: {
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   navLabel: {
     flex: 1,
-    color: '#B7C8D0',
+    color: '#D1D5DB',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 3,
-    backgroundColor: '#B5ECE5',
+    backgroundColor: '#D1D5DB',
   },
   sidebarFooter: {
     flexDirection: 'row',
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 'auto',
     borderTopWidth: 1,
-    borderTopColor: '#294653',
+    borderTopColor: '#374151',
     paddingTop: 16,
     paddingHorizontal: 6,
   },
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1D4050',
+    backgroundColor: '#374151',
   },
   footerCopy: {
     flex: 1,
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   footerSubtitle: {
-    color: '#90A8B3',
+    color: '#9CA3AF',
     fontSize: 10,
     marginTop: 3,
   },
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E8EEF0',
+    borderBottomColor: '#E5E7EB',
   },
   menuButton: {
     width: 39,
@@ -411,13 +411,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 11,
-    backgroundColor: '#F1F6F6',
+    backgroundColor: '#F3F4F6',
   },
   topbarTitles: {
     flex: 1,
   },
   topbarTitle: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -435,18 +435,18 @@ const styles = StyleSheet.create({
     gap: 7,
     paddingHorizontal: 10,
     borderWidth: 1,
-    borderColor: '#B9DCDD',
+    borderColor: '#D1D5DB',
     borderRadius: 7,
-    backgroundColor: '#F2FAFA',
+    backgroundColor: '#F3F4F6',
   },
   walletBadgeLabel: {
-    color: '#718397',
+    color: '#64748B',
     fontSize: 8,
     fontWeight: '800',
   },
   walletBadgeAmount: {
     marginTop: 2,
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 11,
     fontWeight: '900',
   },
@@ -457,10 +457,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 11,
     borderRadius: 20,
-    backgroundColor: '#EAF5F4',
+    backgroundColor: '#F3F4F6',
   },
   portalBadgeText: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 11,
     fontWeight: '800',
   },
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: 24,
     borderTopWidth: 1,
-    borderTopColor: '#E8EEF0',
+    borderTopColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
   },
   mainFooterText: {
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
   drawerOverlay: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: 'rgba(7, 25, 34, 0.42)',
+    backgroundColor: 'rgba(17, 24, 39, 0.42)',
   },
   scrim: {
     position: 'absolute',

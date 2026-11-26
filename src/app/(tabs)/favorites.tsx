@@ -121,14 +121,14 @@ export default function FavoritesScreen() {
             <Text style={styles.subtitle}>The places you love, all in one place.</Text>
           </View>
           <View style={styles.headerIcon}>
-            <Ionicons name="heart" size={22} color="#087E8B" />
+            <Ionicons name="heart" size={22} color="#4B5563" />
           </View>
         </View>
 
         {!userId ? (
           <View style={styles.emptyCard}>
             <View style={styles.emptyIcon}>
-              <Ionicons name="heart-outline" size={29} color="#087E8B" />
+              <Ionicons name="heart-outline" size={29} color="#4B5563" />
             </View>
             <Text style={styles.emptyTitle}>Save stays you love</Text>
             <Text style={styles.emptyText}>Sign in to keep your favourite hotels together and find them again anytime.</Text>
@@ -144,7 +144,7 @@ export default function FavoritesScreen() {
 
         {userId && loading ? (
           <View style={styles.stateCard}>
-            <Ionicons name="hourglass-outline" size={22} color="#087E8B" />
+            <Ionicons name="hourglass-outline" size={22} color="#4B5563" />
             <Text style={styles.stateText}>Loading your saved stays…</Text>
           </View>
         ) : null}
@@ -165,7 +165,7 @@ export default function FavoritesScreen() {
         {userId && !loading && !error && favorites.length === 0 ? (
           <View style={styles.emptyCard}>
             <View style={styles.emptyIcon}>
-              <Ionicons name="heart-outline" size={29} color="#087E8B" />
+              <Ionicons name="heart-outline" size={29} color="#4B5563" />
             </View>
             <Text style={styles.emptyTitle}>Your saved stays start here</Text>
             <Text style={styles.emptyText}>Tap the heart on any hotel to save it here for later.</Text>
@@ -190,7 +190,7 @@ export default function FavoritesScreen() {
                 style={styles.exploreButton}
                 onPress={() => router.push('/search')}
               >
-                <Ionicons name="add" size={16} color="#087E8B" />
+                <Ionicons name="add" size={16} color="#4B5563" />
                 <Text style={styles.exploreButtonText}>Find a stay</Text>
               </TouchableOpacity>
             </View>
@@ -213,13 +213,13 @@ export default function FavoritesScreen() {
                         <Image source={{ uri: imageUri }} style={styles.hotelImage} resizeMode="cover" />
                       ) : (
                         <View style={[styles.hotelImage, styles.imageFallback]}>
-                          <Ionicons name="bed-outline" size={25} color="#087E8B" />
+                          <Ionicons name="bed-outline" size={25} color="#4B5563" />
                         </View>
                       )}
                       <View style={styles.hotelDetails}>
                         <Text style={styles.hotelName} numberOfLines={1}>{hotel.name}</Text>
                         <Text style={styles.hotelLocation} numberOfLines={1}>
-                          <Ionicons name="location-outline" size={12} color="#82939B" /> {location}
+                          <Ionicons name="location-outline" size={12} color="#9CA3AF" /> {location}
                         </Text>
                         <View style={styles.hotelFooter}>
                           <View style={styles.rating}>
@@ -281,19 +281,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   eyebrow: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 1.4,
   },
   title: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 30,
     fontWeight: '900',
     marginTop: 5,
   },
   subtitle: {
-    color: '#819199',
+    color: '#94A3B8',
     fontSize: 12,
     marginTop: 4,
   },
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EAF5F4',
+    backgroundColor: '#F3F4F6',
   },
   list: {
     gap: 11,
@@ -323,12 +323,12 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   listTitle: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 15,
     fontWeight: '800',
   },
   listSubtitle: {
-    color: '#8B9AA1',
+    color: '#94A3B8',
     fontSize: 10,
     marginTop: 4,
   },
@@ -339,10 +339,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 9,
-    backgroundColor: '#EAF5F4',
+    backgroundColor: '#F3F4F6',
   },
   exploreButtonText: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 10,
     fontWeight: '800',
   },
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 10,
     borderWidth: 1,
-    borderColor: '#E8EFF0',
+    borderColor: '#E5E7EB',
     borderRadius: 14,
     backgroundColor: '#FFFFFF',
   },
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
     width: 76,
     height: 76,
     borderRadius: 12,
-    backgroundColor: '#EAF5F4',
+    backgroundColor: '#F3F4F6',
   },
   imageFallback: {
     alignItems: 'center',
@@ -383,12 +383,12 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   hotelName: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 13,
     fontWeight: '800',
   },
   hotelLocation: {
-    color: '#82939B',
+    color: '#9CA3AF',
     fontSize: 10,
   },
   hotelFooter: {
@@ -404,17 +404,17 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   ratingText: {
-    color: '#526974',
+    color: '#64748B',
     fontSize: 10,
     fontWeight: '700',
   },
   price: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 11,
     fontWeight: '900',
   },
   priceUnit: {
-    color: '#819199',
+    color: '#94A3B8',
     fontSize: 9,
     fontWeight: '500',
   },
@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   stateText: {
-    color: '#718397',
+    color: '#64748B',
     fontSize: 12,
   },
   errorCard: {
@@ -474,10 +474,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 8,
     borderRadius: 9,
-    backgroundColor: '#EAF5F4',
+    backgroundColor: '#F3F4F6',
   },
   retryText: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 10,
     fontWeight: '800',
   },
@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E8EFF0',
+    borderColor: '#E5E7EB',
   },
   emptyIcon: {
     width: 58,
@@ -496,10 +496,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 19,
-    backgroundColor: '#EAF5F4',
+    backgroundColor: '#F3F4F6',
   },
   emptyTitle: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 17,
     fontWeight: '900',
     textAlign: 'center',
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     maxWidth: 330,
-    color: '#819199',
+    color: '#94A3B8',
     fontSize: 12,
     lineHeight: 19,
     textAlign: 'center',
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingHorizontal: 18,
     borderRadius: 11,
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   primaryButtonText: {
     color: '#FFFFFF',
@@ -533,7 +533,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   textButtonText: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 11,
     fontWeight: '800',
   },

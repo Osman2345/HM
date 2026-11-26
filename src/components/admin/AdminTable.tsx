@@ -30,16 +30,16 @@ export function AdminTableCell({
 }
 
 export const adminTableText = StyleSheet.create({
-  header: { color: '#526974', fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
-  primary: { color: '#17354B', fontSize: 12, fontWeight: '800' },
-  secondary: { marginTop: 3, color: '#718397', fontSize: 11 },
-  muted: { color: '#667783', fontSize: 11 },
+  header: { color: '#64748B', fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
+  primary: { color: '#1F2937', fontSize: 12, fontWeight: '800' },
+  secondary: { marginTop: 3, color: '#64748B', fontSize: 11 },
+  muted: { color: '#6B7280', fontSize: 11 },
 });
 
 const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1 },
-  table: { overflow: 'hidden', borderWidth: 1, borderColor: '#DDE6E9', borderRadius: 8, backgroundColor: '#FFFFFF' },
-  headerRow: { minHeight: 39, flexDirection: 'row', alignItems: 'stretch', backgroundColor: '#F1F6F7', borderBottomWidth: 1, borderBottomColor: '#DDE6E9' },
-  row: { minHeight: 58, flexDirection: 'row', alignItems: 'stretch', borderBottomWidth: 1, borderBottomColor: '#E8EEF0' },
-  cell: { minHeight: 58, justifyContent: 'center', paddingHorizontal: 10, paddingVertical: 7, borderRightWidth: 1, borderRightColor: '#EEF2F3' },
+  table: { overflow: 'hidden', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, backgroundColor: '#FFFFFF' },
+  headerRow: { minHeight: 39, flexDirection: 'row', alignItems: 'stretch', backgroundColor: '#F3F4F6', borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
+  row: { minHeight: 58, flexDirection: 'row', alignItems: 'stretch', borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
+  cell: { minHeight: 58, justifyContent: 'center', paddingHorizontal: 10, paddingVertical: 7, borderRightWidth: 1, borderRightColor: '#F3F4F6' },
 });

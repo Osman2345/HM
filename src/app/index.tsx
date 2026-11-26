@@ -54,7 +54,7 @@ export default function IndexScreen() {
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color="#2563EB" />
+      <ActivityIndicator size="large" color="#4B5563" />
       <Text style={styles.title}>SL Stay</Text>
       <Text style={styles.subtitle}>
         {loading ? 'Loading session…' : session ? `Signed in as ${role ?? 'guest'}` : 'Opening hotels…'}
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: '#123A50',
+    backgroundColor: '#111827',
   },
   brandName: {
     fontSize: 44,
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   brandBlue: {
-    color: '#70B7FF',
+    color: '#9CA3AF',
   },
   brandEllipsis: {
     color: '#B8CCD6',

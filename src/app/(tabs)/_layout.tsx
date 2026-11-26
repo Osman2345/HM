@@ -2,11 +2,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { Link, Tabs, usePathname } from 'expo-router';
 import { Platform, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuthStore } from '@/store/auth.store';
+
+const footerPages = [
+  { label: 'About Us', href: '/about' },
+  { label: 'Contact', href: '/contact' },
+  { label: 'Terms', href: '/terms' },
+  { label: 'Privacy', href: '/privacy' },
+] as const;
 
 export default function TabsLayout() {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
+  const session = useAuthStore((state) => state.session);
   const desktopWeb = Platform.OS === 'web' && width >= 769;
 
   return (
@@ -21,21 +30,21 @@ export default function TabsLayout() {
             </Link>
             <Link href="/(tabs)/search" asChild>
               <TouchableOpacity style={styles.webSearchLink} accessibilityRole="link">
-                <Ionicons name="search" size={18} color="#087E8B" />
+                <Ionicons name="search" size={18} color="#4B5563" />
                 <Text style={styles.webSearchText}>Search stays and destinations</Text>
               </TouchableOpacity>
             </Link>
             <View style={styles.accountActions}>
               <Link href="/notifications" asChild>
                 <TouchableOpacity style={styles.notificationLink} accessibilityRole="link" accessibilityLabel="Notifications">
-                  <Ionicons name="notifications-outline" size={19} color="#17354B" />
+                  <Ionicons name="notifications-outline" size={19} color="#1F2937" />
                 </TouchableOpacity>
               </Link>
               <View style={styles.accountLinks}>
-                <Link href="/(tabs)/profile" asChild>
+                <Link href={session ? '/(tabs)/profile' : '/login'} asChild>
                   <TouchableOpacity style={styles.accountLink} accessibilityRole="link">
-                    <Ionicons name="person-outline" size={18} color="#087E8B" />
-                    <Text style={styles.accountLinkText}>Login / Account</Text>
+                    <Ionicons name="person-outline" size={18} color="#4B5563" />
+                    <Text style={styles.accountLinkText}>{session ? 'Account' : 'Login'}</Text>
                   </TouchableOpacity>
                 </Link>
                 <Link href="/login?audience=vendor" asChild>
@@ -91,8 +100,8 @@ export default function TabsLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: '#087E8B',
-          tabBarInactiveTintColor: '#82909B',
+          tabBarActiveTintColor: '#4B5563',
+          tabBarInactiveTintColor: '#9CA3AF',
           tabBarStyle: StyleSheet.flatten([
             styles.tabBar,
             {
@@ -109,14 +118,14 @@ export default function TabsLayout() {
           name="index"
           options={{
             title: 'Home',
-            tabBarIcon: ({ size, focused }) => <Ionicons name={focused ? 'home' : 'home-outline'} size={size} color={focused ? '#087E8B' : '#82909B'} />,
+            tabBarIcon: ({ size, focused }) => <Ionicons name={focused ? 'home' : 'home-outline'} size={size} color={focused ? '#4B5563' : '#9CA3AF'} />,
           }}
         />
         <Tabs.Screen
           name="search"
           options={{
             title: 'Search',
-            tabBarIcon: ({ size, focused }) => <Ionicons name={focused ? 'search' : 'search-outline'} size={size} color={focused ? '#087E8B' : '#82909B'} />,
+            tabBarIcon: ({ size, focused }) => <Ionicons name={focused ? 'search' : 'search-outline'} size={size} color={focused ? '#4B5563' : '#9CA3AF'} />,
           }}
         />
         <Tabs.Screen name="favorites" options={{ href: desktopWeb ? '/(tabs)/favorites' : null }} />
@@ -124,14 +133,14 @@ export default function TabsLayout() {
           name="bookings"
           options={{
             title: 'Bookings',
-            tabBarIcon: ({ size, focused }) => <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={size} color={focused ? '#087E8B' : '#82909B'} />,
+            tabBarIcon: ({ size, focused }) => <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={size} color={focused ? '#4B5563' : '#9CA3AF'} />,
           }}
         />
         <Tabs.Screen
           name="profile"
           options={{
             title: 'Account',
-            tabBarIcon: ({ size, focused }) => <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={focused ? '#087E8B' : '#82909B'} />,
+            tabBarIcon: ({ size, focused }) => <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={focused ? '#4B5563' : '#9CA3AF'} />,
           }}
         />
       </Tabs>
@@ -139,10 +148,13 @@ export default function TabsLayout() {
         <View style={styles.webFooter}>
           <View style={styles.webFooterContent}>
             <View style={styles.footerLinks}>
-              <Text style={styles.footerLink}>About Us</Text>
-              <Text style={styles.footerLink}>Contact</Text>
-              <Text style={styles.footerLink}>Terms</Text>
-              <Text style={styles.footerLink}>Privacy</Text>
+              {footerPages.map((page) => (
+                <Link key={page.label} href={page.href} asChild>
+                  <TouchableOpacity accessibilityRole="link" style={styles.footerLinkButton}>
+                    <Text style={styles.footerLink}>{page.label}</Text>
+                  </TouchableOpacity>
+                </Link>
+              ))}
             </View>
             <View style={styles.footerBottom}>
               <Text style={styles.footerSocials}>Instagram  ·  Facebook  ·  X</Text>
@@ -182,13 +194,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   webHeaderBrandText: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 17,
     fontWeight: '800',
     letterSpacing: 0.8,
   },
   webHeaderBrandAccent: {
-    color: '#087E8B',
+    color: '#4B5563',
   },
   webSearchLink: {
     flex: 1,
@@ -204,7 +216,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   webSearchText: {
-    color: '#718397',
+    color: '#64748B',
     fontSize: 13,
   },
   accountLink: {
@@ -215,7 +227,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 14,
     borderRadius: 10,
-    backgroundColor: '#EAF5F4',
+    backgroundColor: '#F3F4F6',
   },
   accountActions: {
     flexDirection: 'row',
@@ -232,10 +244,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,
-    backgroundColor: '#F1F6F6',
+    backgroundColor: '#F3F4F6',
   },
   accountLinkText: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -244,7 +256,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   listPropertyText: {
-    color: '#526974',
+    color: '#64748B',
     fontSize: 11,
     fontWeight: '600',
     textDecorationLine: 'underline',
@@ -280,15 +292,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 14,
     borderRadius: 10,
-    backgroundColor: '#EAF5F4',
+    backgroundColor: '#F3F4F6',
   },
   webNavigationText: {
-    color: '#526974',
+    color: '#64748B',
     fontSize: 13,
     fontWeight: '600',
   },
   webNavigationTextActive: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 13,
     fontWeight: '800',
   },
@@ -324,6 +336,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E6EBEC',
   },
+  footerLinkButton: {
+    paddingVertical: 4,
+  },
   footerLink: {
     color: '#415666',
     fontSize: 12,
@@ -338,11 +353,11 @@ const styles = StyleSheet.create({
     paddingTop: 14,
   },
   footerSocials: {
-    color: '#718397',
+    color: '#64748B',
     fontSize: 11,
   },
   footerCopyright: {
-    color: '#82909B',
+    color: '#9CA3AF',
     fontSize: 11,
   },
 });

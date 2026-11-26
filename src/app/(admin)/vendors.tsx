@@ -1,4 +1,4 @@
-ï»¿import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Linking, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { sendVendorDecisionEmail } from '@/lib/backend';
 import { getSignedVendorDocumentUrl } from '@/lib/vendor-documents';
@@ -154,7 +154,7 @@ export default function AdminVendorsScreen() {
           ))}
         </ScrollView>
       </View>
-      {loading ? <Text style={styles.state}>Loading vendorsâ€¦</Text> : null}
+      {loading ? <Text style={styles.state}>Loading vendors…</Text> : null}
       {error ? (
         <View style={styles.errorBox}>
           <Text style={styles.error}>{error}</Text>
@@ -180,7 +180,7 @@ export default function AdminVendorsScreen() {
               <AdminTableRow key={vendor.id}>
                 <AdminTableCell width={235}>
                   <Text numberOfLines={1} style={adminTableText.primary}>{vendor.business_name || vendor.fullname || vendor.email}</Text>
-                  <Text numberOfLines={1} style={adminTableText.secondary}>{vendor.fullname || 'Name not provided'} Â· {vendor.email}</Text>
+                  <Text numberOfLines={1} style={adminTableText.secondary}>{vendor.fullname || 'Name not provided'} · {vendor.email}</Text>
                 </AdminTableCell>
                 <AdminTableCell width={120}>
                   <Text style={[styles.statusBadge, vendor.disabled ? styles.statusDisabled : vendor.vendor_status === 'approved' ? styles.statusApproved : styles.statusPending]}>
@@ -201,7 +201,7 @@ export default function AdminVendorsScreen() {
                           style={[styles.documentButton, !uploaded && styles.documentButtonMissing]}
                           onPress={() => void openDocument(vendor, documentType)}
                         >
-                          <Text style={[styles.documentButtonText, !uploaded && styles.documentButtonMissingText]}>{documentBusyId === vendor.id ? 'â€¦' : shortLabel}</Text>
+                          <Text style={[styles.documentButtonText, !uploaded && styles.documentButtonMissingText]}>{documentBusyId === vendor.id ? '…' : shortLabel}</Text>
                         </TouchableOpacity>
                       );
                     })}
@@ -225,7 +225,7 @@ export default function AdminVendorsScreen() {
                         style={[styles.smallAction, styles.approveAction, (busyId === vendor.id || !documentsReady || !vendor.vendor_payment_policy_agreed) && styles.actionDisabled]}
                         onPress={() => void updateVendor(vendor, { vendorStatus: 'approved', disabled: false })}
                       >
-                        <Text style={styles.approveText}>{busyId === vendor.id ? 'Savingâ€¦' : 'Approve'}</Text>
+                        <Text style={styles.approveText}>{busyId === vendor.id ? 'Saving…' : 'Approve'}</Text>
                       </TouchableOpacity>
                     ) : null}
                     {vendor.vendor_status !== 'rejected' ? (
@@ -264,36 +264,36 @@ export default function AdminVendorsScreen() {
 const styles = StyleSheet.create({
   container: { padding: 20, paddingBottom: 36, gap: 14 },
   pageHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  heading: { fontSize: 23, fontWeight: '800', color: '#17354B' },
-  subtitle: { marginTop: 4, color: '#718397', fontSize: 12 },
+  heading: { fontSize: 23, fontWeight: '800', color: '#1F2937' },
+  subtitle: { marginTop: 4, color: '#64748B', fontSize: 12 },
   toolbar: { gap: 9 },
-  search: { minHeight: 42, paddingHorizontal: 12, borderRadius: 7, borderWidth: 1, borderColor: '#CBD5E1', backgroundColor: '#FFFFFF', color: '#17354B' },
+  search: { minHeight: 42, paddingHorizontal: 12, borderRadius: 7, borderWidth: 1, borderColor: '#CBD5E1', backgroundColor: '#FFFFFF', color: '#1F2937' },
   filters: { gap: 7, paddingVertical: 1 },
-  filterButton: { minHeight: 32, justifyContent: 'center', paddingHorizontal: 11, borderWidth: 1, borderColor: '#DDE6E9', borderRadius: 6, backgroundColor: '#FFFFFF' },
-  filterButtonSelected: { borderColor: '#087E8B', backgroundColor: '#E8F5F3' },
-  filterText: { color: '#526974', fontSize: 11, fontWeight: '600', textTransform: 'capitalize' },
-  filterTextSelected: { color: '#087E8B', fontWeight: '800' },
+  filterButton: { minHeight: 32, justifyContent: 'center', paddingHorizontal: 11, borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 6, backgroundColor: '#FFFFFF' },
+  filterButtonSelected: { borderColor: '#4B5563', backgroundColor: '#F3F4F6' },
+  filterText: { color: '#64748B', fontSize: 11, fontWeight: '600', textTransform: 'capitalize' },
+  filterTextSelected: { color: '#4B5563', fontWeight: '800' },
   state: { color: '#475569', paddingVertical: 16 },
   errorBox: { padding: 12, borderRadius: 7, backgroundColor: '#FEF2F2' },
   error: { color: '#B91C1C', fontSize: 12 },
   notice: { color: '#027A48', fontSize: 12, fontWeight: '700' },
-  primary: { minHeight: 34, marginTop: 8, alignSelf: 'flex-start', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12, borderRadius: 6, backgroundColor: '#087E8B' },
+  primary: { minHeight: 34, marginTop: 8, alignSelf: 'flex-start', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12, borderRadius: 6, backgroundColor: '#4B5563' },
   buttonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 11 },
-  statusBadge: { alignSelf: 'flex-start', paddingHorizontal: 7, paddingVertical: 4, borderRadius: 4, color: '#526974', backgroundColor: '#F2F4F7', fontSize: 10, fontWeight: '800', textTransform: 'capitalize' },
+  statusBadge: { alignSelf: 'flex-start', paddingHorizontal: 7, paddingVertical: 4, borderRadius: 4, color: '#64748B', backgroundColor: '#F2F4F7', fontSize: 10, fontWeight: '800', textTransform: 'capitalize' },
   statusApproved: { color: '#027A48', backgroundColor: '#ECFDF3' },
   statusPending: { color: '#B54708', backgroundColor: '#FFFAEB' },
   statusDisabled: { color: '#B42318', backgroundColor: '#FEF3F2' },
   documentActions: { flexDirection: 'row', gap: 4 },
-  documentButton: { minWidth: 42, minHeight: 25, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, borderWidth: 1, borderColor: '#B9DCDD', borderRadius: 4, backgroundColor: '#F2FAFA' },
-  documentButtonText: { color: '#087E8B', fontSize: 9, fontWeight: '800' },
+  documentButton: { minWidth: 42, minHeight: 25, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 4, backgroundColor: '#F3F4F6' },
+  documentButtonText: { color: '#4B5563', fontSize: 9, fontWeight: '800' },
   documentButtonMissing: { borderColor: '#E4E7EC', backgroundColor: '#F8FAFC' },
   documentButtonMissingText: { color: '#98A2B3' },
-  tableHint: { marginTop: 4, color: '#718397', fontSize: 9 },
+  tableHint: { marginTop: 4, color: '#64748B', fontSize: 9 },
   policyAccepted: { color: '#027A48', fontSize: 11, fontWeight: '800' },
   policyMissing: { color: '#B42318', fontSize: 11, fontWeight: '800' },
   actionGroup: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
-  smallAction: { minHeight: 27, justifyContent: 'center', paddingHorizontal: 8, borderWidth: 1, borderColor: '#B9DCDD', borderRadius: 5, backgroundColor: '#FFFFFF' },
-  smallActionText: { color: '#087E8B', fontSize: 10, fontWeight: '700' },
+  smallAction: { minHeight: 27, justifyContent: 'center', paddingHorizontal: 8, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 5, backgroundColor: '#FFFFFF' },
+  smallActionText: { color: '#4B5563', fontSize: 10, fontWeight: '700' },
   approveAction: { borderColor: '#A6F4C5', backgroundColor: '#ECFDF3' },
   approveText: { color: '#027A48', fontSize: 10, fontWeight: '800' },
   rejectAction: { borderColor: '#FECACA', backgroundColor: '#FEF3F2' },

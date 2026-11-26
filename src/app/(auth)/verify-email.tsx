@@ -119,7 +119,7 @@ export default function VerifyEmailScreen() {
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.iconCircle}>
-          <Ionicons name="mail-outline" size={30} color="#087E8B" />
+          <Ionicons name="mail-outline" size={30} color="#4B5563" />
         </View>
         <Text style={styles.eyebrow}>EMAIL VERIFICATION</Text>
         <Text style={styles.title}>Check your inbox</Text>
@@ -219,13 +219,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   eyebrow: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1.4,
   },
   title: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 29,
     fontWeight: '800',
     marginTop: 8,
@@ -244,11 +244,11 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
   email: {
-    color: '#17354B',
+    color: '#1F2937',
     fontWeight: '700',
   },
   label: {
-    color: '#17354B',
+    color: '#1F2937',
     fontWeight: '700',
     marginBottom: 8,
   },
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     borderColor: '#CBD5E1',
     borderRadius: 13,
     borderWidth: 1,
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 24,
     fontWeight: '700',
     letterSpacing: 8,
@@ -280,13 +280,13 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   notice: {
-    color: '#087E8B',
+    color: '#4B5563',
     marginTop: 10,
     lineHeight: 20,
   },
   primaryButton: {
     alignItems: 'center',
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
     borderRadius: 13,
     marginTop: 20,
     paddingVertical: 15,
@@ -300,14 +300,14 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     alignItems: 'center',
-    borderColor: '#B8D5D6',
+    borderColor: '#D1D5DB',
     borderRadius: 13,
     borderWidth: 1,
     marginTop: 11,
     paddingVertical: 14,
   },
   secondaryButtonText: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontWeight: '700',
   },
   vendorNote: {

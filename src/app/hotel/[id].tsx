@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Image, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { invalidateCached, loadCached } from '@/lib/query-cache';
@@ -59,7 +59,7 @@ export default function HotelDetailsScreen() {
   const hotelPhotos = useMemo(() => [...new Set([hotel?.cover_image, ...(hotel?.images ?? [])]
     .filter((image): image is string => typeof image === 'string' && image.trim().length > 0))], [hotel?.cover_image, hotel?.images]);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     let active = true;
     let timedOut = false;
     const controller = new AbortController();
@@ -79,7 +79,7 @@ export default function HotelDetailsScreen() {
           throw new Error('The hotel link is missing its listing ID.');
         }
 
-        const data = await loadCached(`hotel:${hotelId}`, async () => {
+        const data = await loadCached(`hotel:${hotelId}:${reloadKey}`, async () => {
           const { data: hotelData, error: fetchError } = await supabase
             .from('hotels')
             .select('id, name, city, country, description, cover_image, images, amenities, rooms, rating, review_count, policies, check_in_time, check_out_time, latitude, longitude')
@@ -89,7 +89,7 @@ export default function HotelDetailsScreen() {
 
           if (fetchError) throw fetchError;
           return hotelData as HotelRow | null;
-        }, 20000);
+        }, 20000, true);
 
         if (!active) return;
         setHotel(data);
@@ -135,7 +135,7 @@ export default function HotelDetailsScreen() {
       clearTimeout(timeout);
       controller.abort();
     };
-  }, [hotelId, reloadKey, userId]);
+  }, [hotelId, reloadKey, userId]));
 
   useEffect(() => {
     heroIndexRef.current = 0;
@@ -280,7 +280,7 @@ export default function HotelDetailsScreen() {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <Ionicons name="chevron-back" size={22} color="#17354B" />
+          <Ionicons name="chevron-back" size={22} color="#1F2937" />
         </TouchableOpacity>
 
         <View style={styles.brandLockup}>
@@ -312,11 +312,11 @@ export default function HotelDetailsScreen() {
       >
         <View style={styles.breadcrumbs}>
           <TouchableOpacity onPress={() => router.replace('/(tabs)')} accessibilityRole="link"><Text style={styles.breadcrumbLink}>Home</Text></TouchableOpacity>
-          <Ionicons name="chevron-forward" size={12} color="#82909B" />
+          <Ionicons name="chevron-forward" size={12} color="#9CA3AF" />
           <TouchableOpacity onPress={() => router.replace('/(tabs)/search')} accessibilityRole="link"><Text style={styles.breadcrumbLink}>Hotels</Text></TouchableOpacity>
-          <Ionicons name="chevron-forward" size={12} color="#82909B" />
+          <Ionicons name="chevron-forward" size={12} color="#9CA3AF" />
           <Text style={styles.breadcrumbCurrent} numberOfLines={1}>{hotel.city}</Text>
-          <Ionicons name="chevron-forward" size={12} color="#82909B" />
+          <Ionicons name="chevron-forward" size={12} color="#9CA3AF" />
           <Text style={styles.breadcrumbCurrent} numberOfLines={1}>{hotel.name}</Text>
         </View>
 
@@ -325,7 +325,7 @@ export default function HotelDetailsScreen() {
             <Text style={styles.stars}>{hotel.rating ? '★'.repeat(Math.max(1, Math.min(5, Math.round(hotel.rating)))) : 'NEW LISTING'}</Text>
             <Text style={styles.name}>{hotel.name}</Text>
             <View style={styles.locationRow}>
-              <Ionicons name="location" size={16} color="#087E8B" />
+              <Ionicons name="location" size={16} color="#4B5563" />
               <Text style={styles.meta}>{hotel.city}, {hotel.country}</Text>
               <Text style={styles.locationSeparator}>·</Text>
               <TouchableOpacity onPress={() => void openHotelLocation()} accessibilityRole="button">
@@ -340,7 +340,7 @@ export default function HotelDetailsScreen() {
               accessibilityRole="button"
               accessibilityLabel={favorite ? 'Remove from favorites' : 'Add to favorites'}
             >
-              <Ionicons name={favorite ? 'heart' : 'heart-outline'} size={21} color="#087E8B" />
+              <Ionicons name={favorite ? 'heart' : 'heart-outline'} size={21} color="#4B5563" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.reserveButton} onPress={() => startBooking()} accessibilityRole="button">
               <Text style={styles.reserveButtonText}>Reserve a room</Text>
@@ -457,7 +457,7 @@ export default function HotelDetailsScreen() {
               </TouchableOpacity>
             </View>
             <View style={styles.locationCard}>
-              <View style={styles.locationCardIcon}><Ionicons name="location-outline" size={20} color="#087E8B" /></View>
+              <View style={styles.locationCardIcon}><Ionicons name="location-outline" size={20} color="#4B5563" /></View>
               <View style={styles.locationCardCopy}>
                 <Text style={styles.locationCardTitle}>Explore the area</Text>
                 <Text style={styles.locationCardText}>{hotel.city}, {hotel.country}</Text>
@@ -478,7 +478,7 @@ export default function HotelDetailsScreen() {
           <View style={styles.highlightsRow}>
             {(hotel.amenities ?? []).slice(0, desktopWeb ? 4 : 3).map((amenity, index) => (
               <View key={amenity} style={styles.highlightItem}>
-                <View style={styles.highlightIcon}><Ionicons name={index === 0 ? 'sparkles-outline' : 'checkmark-circle-outline'} size={18} color="#087E8B" /></View>
+                <View style={styles.highlightIcon}><Ionicons name={index === 0 ? 'sparkles-outline' : 'checkmark-circle-outline'} size={18} color="#4B5563" /></View>
                 <View style={styles.highlightCopy}>
                   <Text style={styles.highlightTitle}>{amenity}</Text>
                   <Text style={styles.highlightMeta}>Available at this property</Text>
@@ -503,7 +503,7 @@ export default function HotelDetailsScreen() {
             <View style={styles.chipWrap}>
               {(hotel.amenities ?? []).map((amenity) => (
                 <View key={amenity} style={styles.chip}>
-                  <Ionicons name="checkmark-circle-outline" size={14} color="#087E8B" />
+                  <Ionicons name="checkmark-circle-outline" size={14} color="#4B5563" />
                   <Text style={styles.chipText}>{amenity}</Text>
                 </View>
               ))}
@@ -545,9 +545,9 @@ export default function HotelDetailsScreen() {
                       onPress={() => openPhotoGallery(room.images ?? [], `${room.type ?? 'Room'} photos`)}
                       accessibilityRole="button"
                     >
-                      <Ionicons name="images-outline" size={16} color="#087E8B" />
+                      <Ionicons name="images-outline" size={16} color="#4B5563" />
                       <Text style={styles.roomGalleryActionText}>See all {room.images.length} room photos</Text>
-                      <Ionicons name="chevron-forward" size={15} color="#087E8B" />
+                      <Ionicons name="chevron-forward" size={15} color="#4B5563" />
                     </TouchableOpacity>
                   </>
                 ) : null}
@@ -710,7 +710,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -724,13 +724,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2B544',
   },
   brandName: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 18,
     fontWeight: '800',
     letterSpacing: 0,
   },
   brandNameAccent: {
-    color: '#087E8B',
+    color: '#4B5563',
   },
   brandTagline: {
     marginTop: 1,
@@ -751,7 +751,7 @@ const styles = StyleSheet.create({
     marginLeft: 'auto',
   },
   favoriteIcon: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 18,
     fontWeight: '700',
   },
@@ -777,7 +777,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   breadcrumbLink: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -813,11 +813,11 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   locationSeparator: {
-    color: '#82909B',
+    color: '#9CA3AF',
     marginHorizontal: 2,
   },
   inlineMapLink: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 13,
     fontWeight: '700',
     textDecorationLine: 'underline',
@@ -833,7 +833,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 18,
     borderRadius: 6,
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   reserveButtonText: {
     color: '#FFFFFF',
@@ -844,7 +844,7 @@ const styles = StyleSheet.create({
     maxHeight: 48,
     marginBottom: 18,
     borderBottomWidth: 1,
-    borderBottomColor: '#DDE6E9',
+    borderBottomColor: '#E5E7EB',
   },
   sectionTabsContent: {
     minWidth: '100%',
@@ -858,15 +858,15 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   sectionTabActive: {
-    borderBottomColor: '#087E8B',
+    borderBottomColor: '#4B5563',
   },
   sectionTabText: {
-    color: '#526974',
+    color: '#64748B',
     fontSize: 13,
     fontWeight: '600',
   },
   sectionTabTextActive: {
-    color: '#17354B',
+    color: '#1F2937',
     fontWeight: '800',
   },
   galleryRow: {
@@ -967,7 +967,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   galleryThumbActive: {
-    borderColor: '#087E8B',
+    borderColor: '#4B5563',
   },
   galleryThumbImage: {
     width: '100%',
@@ -981,7 +981,7 @@ const styles = StyleSheet.create({
     gap: 7,
     paddingHorizontal: 13,
     borderRadius: 6,
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   seeAllPhotosText: {
     color: '#FFFFFF',
@@ -1015,7 +1015,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   ratingCardLabel: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 16,
     fontWeight: '800',
   },
@@ -1033,7 +1033,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 9,
     borderTopRightRadius: 9,
     borderBottomRightRadius: 9,
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   ratingBadgeText: {
     color: '#FFFFFF',
@@ -1043,7 +1043,7 @@ const styles = StyleSheet.create({
   ratingCardCopy: {
     marginTop: 12,
     marginBottom: 9,
-    color: '#526974',
+    color: '#64748B',
     fontSize: 12,
     lineHeight: 18,
   },
@@ -1066,7 +1066,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   locationCardTitle: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 14,
     fontWeight: '800',
   },
@@ -1126,13 +1126,13 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   highlightTitle: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 12,
     fontWeight: '700',
   },
   highlightMeta: {
     marginTop: 2,
-    color: '#82909B',
+    color: '#9CA3AF',
     fontSize: 10,
   },
   overviewGrid: {
@@ -1169,7 +1169,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   policyTimeValue: {
-    color: '#17354B',
+    color: '#1F2937',
     fontWeight: '800',
   },
   reviewScore: {
@@ -1180,7 +1180,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 9,
     borderTopRightRadius: 9,
     borderBottomRightRadius: 9,
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   reviewScoreValue: {
     color: '#FFFFFF',
@@ -1190,7 +1190,7 @@ const styles = StyleSheet.create({
   locationPill: {
     alignSelf: 'flex-start',
     backgroundColor: '#E8F5F7',
-    color: '#0C7A8A',
+    color: '#4B5563',
     borderRadius: 4,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -1203,7 +1203,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 30,
     fontWeight: '800',
-    color: '#17354B',
+    color: '#1F2937',
     letterSpacing: 0,
   },
   meta: {
@@ -1225,7 +1225,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginTop: 12,
-    color: '#17354B',
+    color: '#1F2937',
     fontWeight: '700',
     fontSize: 18,
   },
@@ -1281,7 +1281,7 @@ const styles = StyleSheet.create({
   },
   roomGalleryActionText: {
     flex: 1,
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -1302,7 +1302,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   roomPrice: {
-    color: '#17354B',
+    color: '#1F2937',
     fontWeight: '700',
     fontSize: 15,
   },
@@ -1312,7 +1312,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   bookRoomButton: {
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
     borderRadius: 6,
     paddingVertical: 10,
     paddingHorizontal: 14,
@@ -1323,7 +1323,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   mapButton: {
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
     borderRadius: 14,
     paddingVertical: 15,
     paddingHorizontal: 18,
@@ -1441,7 +1441,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 10,
-    backgroundColor: '#087E8B',
+    backgroundColor: '#4B5563',
   },
   retryText: {
     color: '#FFFFFF',
@@ -1457,7 +1457,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EAF5F6',
   },
   backText: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontWeight: '700',
   },
 });

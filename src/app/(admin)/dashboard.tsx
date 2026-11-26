@@ -16,12 +16,12 @@ import WalletControls from '@/components/finance/WalletControls';
 const formatDate = (value: string) => new Date(value).toLocaleString();
 
 const metrics = [
-  { key: 'users', label: 'Registered users', icon: 'people-outline', tint: '#2879B8', background: '#EAF4FC' },
+  { key: 'users', label: 'Registered users', icon: 'people-outline', tint: '#4B5563', background: '#EFF6FF' },
   { key: 'vendors', label: 'Total partners', icon: 'briefcase-outline', tint: '#7861BB', background: '#F1EDFC' },
-  { key: 'hotels', label: 'Properties', icon: 'business-outline', tint: '#087E8B', background: '#E8F5F3' },
+  { key: 'hotels', label: 'Properties', icon: 'business-outline', tint: '#4B5563', background: '#F3F4F6' },
   { key: 'bookings', label: 'Total bookings', icon: 'calendar-outline', tint: '#C47A2C', background: '#FFF3E5' },
-  { key: 'commissionEarned', label: 'Total commission earned', icon: 'trending-up-outline', tint: '#087E8B', background: '#E8F5F3' },
-  { key: 'vendorPayouts', label: 'Total vendor payouts', icon: 'wallet-outline', tint: '#2879B8', background: '#EAF4FC' },
+  { key: 'commissionEarned', label: 'Total commission earned', icon: 'trending-up-outline', tint: '#4B5563', background: '#F3F4F6' },
+  { key: 'vendorPayouts', label: 'Total vendor payouts', icon: 'wallet-outline', tint: '#4B5563', background: '#EFF6FF' },
   { key: 'suspiciousNoShows', label: 'Suspicious no-show flags', icon: 'alert-circle-outline', tint: '#C47A2C', background: '#FFF3E5' },
 ] as const;
 
@@ -78,7 +78,7 @@ export default function AdminDashboardScreen() {
           </Text>
         </View>
         <View style={styles.welcomeIcon}>
-          <Ionicons name="analytics-outline" size={31} color="#D8F5F0" />
+          <Ionicons name="analytics-outline" size={31} color="#F3F4F6" />
         </View>
       </View>
 
@@ -134,7 +134,7 @@ export default function AdminDashboardScreen() {
                   <Text style={styles.panelTitle}>Partner approvals</Text>
                   <Text style={styles.panelSubtitle}>Application pipeline</Text>
                 </View>
-                <View style={styles.panelIcon}><Ionicons name="shield-checkmark-outline" size={18} color="#087E8B" /></View>
+                <View style={styles.panelIcon}><Ionicons name="shield-checkmark-outline" size={18} color="#4B5563" /></View>
               </View>
               <View style={styles.approvalStats}>
                 <View style={styles.approvalStat}>
@@ -156,7 +156,7 @@ export default function AdminDashboardScreen() {
                 onPress={() => router.push('/(admin)/vendors')}
               >
                 <Text style={styles.panelLinkText}>Manage vendor applications</Text>
-                <Ionicons name="arrow-forward" size={15} color="#087E8B" />
+                <Ionicons name="arrow-forward" size={15} color="#4B5563" />
               </TouchableOpacity>
             </View>
 
@@ -183,7 +183,7 @@ export default function AdminDashboardScreen() {
                 onPress={() => router.push('/(admin)/hotels')}
               >
                 <Text style={styles.panelLinkText}>Review pending items</Text>
-                <Ionicons name="arrow-forward" size={15} color="#087E8B" />
+                <Ionicons name="arrow-forward" size={15} color="#4B5563" />
               </TouchableOpacity>
             </View>
           </View>
@@ -195,7 +195,7 @@ export default function AdminDashboardScreen() {
                   <Text style={styles.panelTitle}>Recent activity</Text>
                   <Text style={styles.panelSubtitle}>Latest updates on your platform</Text>
                 </View>
-                <View style={styles.panelIcon}><Ionicons name="pulse-outline" size={18} color="#087E8B" /></View>
+                <View style={styles.panelIcon}><Ionicons name="pulse-outline" size={18} color="#4B5563" /></View>
               </View>
               {overview.activity.length === 0 ? (
                 <Text style={styles.emptyState}>There’s no recent activity to show.</Text>
@@ -206,7 +206,7 @@ export default function AdminDashboardScreen() {
                       <Ionicons
                         name={item.kind === 'booking' ? 'calendar-outline' : 'notifications-outline'}
                         size={16}
-                        color={item.kind === 'booking' ? '#2879B8' : '#087E8B'}
+                        color={item.kind === 'booking' ? '#4B5563' : '#4B5563'}
                       />
                     </View>
                     <View style={styles.activityCopy}>
@@ -230,7 +230,7 @@ export default function AdminDashboardScreen() {
                   onPress={() => router.push(link.href)}
                 >
                   <View style={styles.quickIcon}>
-                    <Ionicons name={link.icon} size={17} color="#087E8B" />
+                    <Ionicons name={link.icon} size={17} color="#4B5563" />
                   </View>
                   <View style={styles.quickCopy}>
                     <Text style={styles.quickTitle}>{link.label}</Text>
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 27,
     paddingVertical: 23,
     borderRadius: 19,
-    backgroundColor: '#173B4A',
+    backgroundColor: '#374151',
     overflow: 'hidden',
   },
   welcomeCardCompact: {
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   eyebrow: {
-    color: '#A5DCD7',
+    color: '#D1D5DB',
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 1.5,
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     marginTop: 9,
   },
   welcomeSubtitle: {
-    color: '#C2D4D9',
+    color: '#D1D5DB',
     fontSize: 13,
     lineHeight: 19,
     marginTop: 7,
@@ -309,12 +309,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sectionTitle: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 17,
     fontWeight: '800',
   },
   sectionSubtitle: {
-    color: '#8B9AA1',
+    color: '#94A3B8',
     fontSize: 11,
     marginTop: 4,
   },
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   metricValue: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 26,
     fontWeight: '900',
     marginTop: 15,
@@ -414,12 +414,12 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   panelTitle: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 14,
     fontWeight: '800',
   },
   panelSubtitle: {
-    color: '#8B9AA1',
+    color: '#94A3B8',
     fontSize: 10,
     marginTop: 4,
   },
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EAF5F4',
+    backgroundColor: '#F3F4F6',
   },
   approvalStats: {
     flexDirection: 'row',
@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   approvalValue: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 24,
     fontWeight: '900',
   },
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
     color: '#C47A2C',
   },
   approvalLabel: {
-    color: '#84949A',
+    color: '#94A3B8',
     fontSize: 10,
     marginTop: 3,
   },
@@ -468,7 +468,7 @@ const styles = StyleSheet.create({
   progressFill: {
     height: '100%',
     borderRadius: 3,
-    backgroundColor: '#39A993',
+    backgroundColor: '#6B7280',
   },
   panelLink: {
     flexDirection: 'row',
@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
     paddingTop: 15,
   },
   panelLinkText: {
-    color: '#087E8B',
+    color: '#4B5563',
     fontSize: 11,
     fontWeight: '800',
   },
@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 9,
     borderBottomWidth: 1,
-    borderBottomColor: '#EFF2F2',
+    borderBottomColor: '#F3F4F6',
   },
   attentionIcon: {
     width: 30,
@@ -499,12 +499,12 @@ const styles = StyleSheet.create({
   },
   attentionLabel: {
     flex: 1,
-    color: '#526974',
+    color: '#64748B',
     fontSize: 11,
     fontWeight: '600',
   },
   attentionValue: {
-    color: '#17354B',
+    color: '#1F2937',
     fontSize: 14,
     fontWeight: '900',
   },
@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 11,
     borderTopWidth: 1,
-    borderTopColor: '#EFF2F2',
+    borderTopColor: '#F3F4F6',
   },
   activityIcon: {
     width: 33,
@@ -522,21 +522,21 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E8F5F3',
+    backgroundColor: '#F3F4F6',
   },
   bookingActivityIcon: {
-    backgroundColor: '#EAF4FC',
+    backgroundColor: '#EFF6FF',
   },
   activityCopy: {
     flex: 1,
   },
   activityTitle: {
-    color: '#294655',
+    color: '#374151',
     fontSize: 11,
     fontWeight: '800',
   },
   activityDetail: {
-    color: '#84949A',
+    color: '#94A3B8',
     fontSize: 10,
     lineHeight: 15,
     marginTop: 3,
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   emptyState: {
-    color: '#84949A',
+    color: '#94A3B8',
     fontSize: 12,
     paddingVertical: 14,
   },
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     borderTopWidth: 1,
-    borderTopColor: '#EFF2F2',
+    borderTopColor: '#F3F4F6',
   },
   quickIcon: {
     width: 32,
@@ -566,23 +566,23 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EAF5F4',
+    backgroundColor: '#F3F4F6',
   },
   quickCopy: {
     flex: 1,
   },
   quickTitle: {
-    color: '#294655',
+    color: '#374151',
     fontSize: 11,
     fontWeight: '800',
   },
   quickDetail: {
-    color: '#8B9AA1',
+    color: '#94A3B8',
     fontSize: 9,
     marginTop: 3,
   },
   state: {
-    color: '#718397',
+    color: '#64748B',
     paddingVertical: 10,
   },
   errorCard: {
